@@ -53,6 +53,10 @@ docs/prd/*.pdf
 .taste-skill/
 .claude/settings.local.json
 
+# Third-party skills are restored from skills-lock.json, not committed
+# (the installer does not copy their license files; PRD §10).
+.claude/skills/design-taste-frontend/
+
 # OS files
 .DS_Store
 Thumbs.db
