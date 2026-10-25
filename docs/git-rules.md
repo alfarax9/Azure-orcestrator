@@ -53,8 +53,14 @@ Lalu Claude Code meninjau diff-nya sendiri:
 - Hapus apa pun yang tidak dibutuhkan perubahan itu: kode debug, `fmt.Println` atau `console.log` sementara, kode yang di-comment out, file yang tidak dipakai.
 - Pastikan tidak ada secret yang ter-stage. Kalau ada, unstage, beri tahu user, dan jangan commit.
 - Satu perubahan logis per commit; perubahan yang tidak berhubungan dipisah.
-- Satu commit per fase eksekusi. Satu fase eksekusi adalah satu requirement (satu ID, misalnya F5-02) yang kriteria penerimaannya sudah lulus.
+- Satu fase eksekusi adalah satu requirement (satu ID, misalnya F5-02) yang kriteria penerimaannya sudah lulus. Satu fase boleh terdiri dari satu commit, atau satu commit per file bila pemilik produk memintanya.
 - Bila pemeriksaan atau hook gagal, perbaiki penyebabnya. Jangan pernah memakai `--no-verify`.
+
+**Commit per file.** Pemilik produk boleh meminta perubahan dipecah menjadi satu commit per file. Aturannya:
+
+- Urutkan file dari dependensi paling dasar (tipe, model, test, komponen, lalu titik masuk) supaya typecheck, lint, dan test lulus di sebanyak mungkin commit.
+- Pemeriksaan di atas wajib lulus di commit terakhir rangkaian itu. Commit perantara boleh gagal knip atau typecheck bila tidak bisa dihindari; tulis alasannya di body commit dan sebutkan commit mana saja di ringkasan sesi.
+- Setiap commit tetap mengikuti format 12.3 dan menjelaskan file itu sendiri, bukan "part 3 of 9".
 
 ## 12.5 Tidak boleh di-commit
 
@@ -69,18 +75,23 @@ Lalu Claude Code meninjau diff-nya sendiri:
 
 ## 12.6 Branch dan push
 
+- Kerja dilakukan langsung di `main`. Tidak perlu membuat branch baru untuk setiap task.
 - Push hanya bila user memintanya di sesi itu. Commit tidak berarti push.
-- Tidak pernah push langsung ke `main` kecuali user memintanya secara eksplisit. Kerja dilakukan di branch `<type>/<deskripsi-singkat>`, dengan ID requirement di deskripsinya, misalnya `feat/f5-02-preview-tls`.
-- Tidak pernah force-push ke `main`. Di branch lain, hanya `--force-with-lease` dan hanya dengan persetujuan user.
+- Sebelum push, ambil `origin/main` terbaru. Bila `main` lokal tertinggal, merge `origin/main`; jangan rebase commit yang sudah di-push.
+- Tidak pernah force-push ke `main`.
+- Branch lain hanya dibuat bila user memintanya. Di branch itu, force-push hanya dengan `--force-with-lease` dan persetujuan user.
 - Tidak pernah menulis ulang, amend, atau rebase commit yang sudah di-push, kecuali diminta user.
 - Tidak pernah menghapus branch atau tag remote tanpa persetujuan user.
 
 ## 12.7 Pull request
 
+PR tidak wajib; perubahan masuk langsung ke `main`. Bila user meminta PR:
+
 - Judul mengikuti format commit di 12.3.
 - Deskripsi dalam bahasa Inggris berisi: apa yang berubah, kenapa, bagaimana diuji, ID requirement yang diselesaikan, dan hal yang perlu diperiksa reviewer.
 - Tanpa atribusi (12.1).
 - Judul dan deskripsi ditunjukkan ke user untuk disetujui sebelum PR dibuat.
+- Merge ke `main` dengan merge commit atau rebase, bukan squash, supaya commit per file tetap utuh.
 
 ## 12.8 Membuat repository
 
