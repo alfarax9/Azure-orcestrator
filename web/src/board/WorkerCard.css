@@ -26,30 +26,86 @@
   overflow: hidden;
 }
 
-.card-drag {
+.card-icon-button {
   flex: none;
   display: grid;
   place-items: center;
   width: 24px;
   height: 24px;
-  margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-1)) 0 0;
+  margin-top: calc(-1 * var(--space-1));
   padding: 0;
   border: 0;
   border-radius: var(--radius-s);
   background: none;
   color: var(--muted);
-  cursor: grab;
+  cursor: pointer;
   transition: color var(--dur-fast) var(--ease-out);
 }
 
-.card-drag[data-hovered] {
+.card-icon-button:last-child {
+  margin-right: calc(-1 * var(--space-1));
+}
+
+.card-icon-button[data-hovered],
+.card-icon-button[data-pressed] {
   color: var(--text);
   background: var(--raised);
 }
 
-.card-drag[data-focus-visible] {
+.card-icon-button[data-focus-visible] {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+.card-drag {
+  cursor: grab;
+}
+
+/* Floating menu: shadow only, no border (DESIGN_RULES.md §3). */
+.menu-popover {
+  min-width: 160px;
+  padding: var(--space-1);
+  border-radius: var(--radius-m);
+  background: var(--raised);
+  box-shadow: var(--shadow-float);
+  z-index: var(--z-dropdown);
+}
+
+.menu-popover[data-entering] {
+  animation: menu-in var(--dur-fast) var(--ease-out);
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-1 * var(--space-1)));
+  }
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  outline: none;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  height: var(--control-height);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-s);
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+}
+
+.menu-item[data-focused] {
+  background: var(--active);
+}
+
+.menu-item[data-disabled] {
+  color: var(--muted);
+  cursor: default;
 }
 
 .card-status {
