@@ -6,12 +6,22 @@ import (
 	"flag"
 	"fmt"
 	"os"
+
+	"github.com/alfarax9/astra/internal/pty"
 )
 
 // version is set at release time with -ldflags "-X main.version=1.0.0".
 var version = "dev"
 
 func main() {
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case pty.HostCommand:
+			os.Exit(pty.HostMain(os.Args[2:], os.Environ()))
+		case "session":
+			os.Exit(runSession(os.Args[2:]))
+		}
+	}
 	showVersion := flag.Bool("version", false, "print the version and exit")
 	flag.Parse()
 	if *showVersion {
