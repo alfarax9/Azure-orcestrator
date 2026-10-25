@@ -1,0 +1,149 @@
+version: "2"
+
+run:
+  go: "1.27"
+  timeout: 5m
+  tests: true
+
+linters:
+  default: standard          # errcheck, govet, ineffassign, staticcheck, unused
+  enable:
+    - bodyclose
+    - contextcheck
+    - depguard
+    - dupl
+    - errorlint
+    - forbidigo
+    - funlen
+    - gocognit
+    - godox
+    - gosec
+    - misspell
+    - nakedret
+    - noctx
+    - nolintlint
+    - revive
+    - sloglint
+    - unparam
+  settings:
+    funlen:
+      lines: 60
+      statements: 40
+    gocognit:
+      min-complexity: 15
+    dupl:
+      threshold: 100
+    godox:
+      keywords: [FIXME, HACK, XXX]
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+    forbidigo:
+      forbid:
+        - pattern: ^(fmt\.Print.*|log\.Print.*)$
+          msg: use the injected *slog.Logger
+        - pattern: ^os\.Getenv$
+          msg: read configuration in cmd/ only
+    revive:
+      rules:
+        - name: context-as-argument
+        - name: error-strings
+        - name: exported
+        - name: package-comments
+        - name: receiver-naming
+        - name: var-naming
+    depguard:
+      rules:
+        domain-is-pure:
+          files: ["**/internal/domain/**"]
+          allow:
+            - $gostd
+            - github.com/alfarax9/astra/internal/domain
+        capabilities-skip-infra:
+          files:
+            - "**/internal/agent/**"
+            - "**/internal/workspace/**"
+            - "**/internal/preview/**"
+            - "**/internal/feedback/**"
+            - "**/internal/gate/**"
+            - "**/internal/deploy/**"
+            - "**/internal/watch/**"
+            - "**/internal/server/**"
+          deny:
+            - pkg: github.com/alfarax9/astra/internal/api
+              desc: capabilities never import the protocol layer
+            - pkg: github.com/alfarax9/astra/internal/store
+              desc: define a small interface here; cmd/astrad wires the implementation
+            - pkg: github.com/alfarax9/astra/internal/proxy
+              desc: define a small interface here; cmd/astrad wires the implementation
+            - pkg: github.com/alfarax9/astra/internal/pty
+              desc: define a small interface here; cmd/astrad wires the implementation
+            - pkg: github.com/alfarax9/astra/internal/agentcli
+              desc: define a small interface here; cmd/astrad wires the implementation
+            - pkg: github.com/alfarax9/astra/internal/docker
+              desc: define a small interface here; cmd/astrad wires the implementation
+            - pkg: github.com/alfarax9/astra/internal/dns
+              desc: define a small interface here; cmd/astrad wires the implementation
+            - pkg: github.com/alfarax9/astra/internal/remote
+              desc: define a small interface here; cmd/astrad wires the implementation
+        infra-skips-protocol:
+          files:
+            - "**/internal/store/**"
+            - "**/internal/proxy/**"
+            - "**/internal/pty/**"
+            - "**/internal/agentcli/**"
+            - "**/internal/docker/**"
+            - "**/internal/dns/**"
+            - "**/internal/remote/**"
+          deny:
+            - pkg: github.com/alfarax9/astra/internal/api
+              desc: infrastructure never imports the protocol layer
+        # The desktop module (desktop/, its own go.mod) shows and sends; all logic stays
+        # in the daemon. It may use internal/api/client and internal/domain only.
+        desktop-is-a-client:
+          files: ["**/desktop/**"]
+          deny:
+            - pkg: github.com/alfarax9/astra/internal/agent
+              desc: desktop only uses internal/api/client and internal/domain (docs/monorepo.md)
+            - pkg: github.com/alfarax9/astra/internal/workspace
+              desc: desktop only uses internal/api/client and internal/domain (docs/monorepo.md)
+            - pkg: github.com/alfarax9/astra/internal/preview
+              desc: desktop only uses internal/api/client and internal/domain (docs/monorepo.md)
+            - pkg: github.com/alfarax9/astra/internal/feedback
+              desc: desktop only uses internal/api/client and internal/domain (docs/monorepo.md)
+            - pkg: github.com/alfarax9/astra/internal/gate
+              desc: desktop only uses internal/api/client and internal/domain (docs/monorepo.md)
+            - pkg: github.com/alfarax9/astra/internal/deploy
+              desc: desktop only uses internal/api/client and internal/domain (docs/monorepo.md)
+            - pkg: github.com/alfarax9/astra/internal/watch
+              desc: desktop only uses internal/api/client and internal/domain (docs/monorepo.md)
+            - pkg: github.com/alfarax9/astra/internal/server
+              desc: desktop only uses internal/api/client and internal/domain (docs/monorepo.md)
+            - pkg: github.com/alfarax9/astra/internal/store
+              desc: desktop only uses internal/api/client and internal/domain (docs/monorepo.md)
+            - pkg: github.com/alfarax9/astra/internal/proxy
+              desc: desktop only uses internal/api/client and internal/domain (docs/monorepo.md)
+            - pkg: github.com/alfarax9/astra/internal/pty
+              desc: desktop only uses internal/api/client and internal/domain (docs/monorepo.md)
+            - pkg: github.com/alfarax9/astra/internal/agentcli
+              desc: desktop only uses internal/api/client and internal/domain (docs/monorepo.md)
+            - pkg: github.com/alfarax9/astra/internal/docker
+              desc: desktop only uses internal/api/client and internal/domain (docs/monorepo.md)
+            - pkg: github.com/alfarax9/astra/internal/dns
+              desc: desktop only uses internal/api/client and internal/domain (docs/monorepo.md)
+            - pkg: github.com/alfarax9/astra/internal/remote
+              desc: desktop only uses internal/api/client and internal/domain (docs/monorepo.md)
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters: [dupl, funlen, gosec]
+      - path: ^cmd/
+        linters: [forbidigo]
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes: [github.com/alfarax9/astra]
