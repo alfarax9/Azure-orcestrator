@@ -1,0 +1,3 @@
+#!/bin/sh
+# Run the full quality gate before pushing (docs/go-rules.md).
+exec make check
