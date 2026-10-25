@@ -46,6 +46,10 @@ logs/
 *.sqlite3
 .astrad/
 
+# Local Go workspace; every module must build on its own (docs/monorepo.md)
+go.work
+go.work.sum
+
 # Source PDFs stay local; docs/PRD.md is the tracked copy
 docs/prd/*.pdf
 
