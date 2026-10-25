@@ -1,0 +1,58 @@
+# Secrets (docs/git-rules.md §12.5)
+.env
+.env.*
+!.env.example
+id_rsa*
+id_dsa*
+id_ecdsa*
+id_ed25519*
+*.pem
+*.key
+*.p12
+*.pfx
+*.cer
+*.mobileprovision
+*.provisionprofile
+
+# Go build output
+bin/
+dist/
+build/bin/
+
+# Installers
+*.dmg
+*.exe
+*.msi
+*.AppImage
+*.deb
+*.rpm
+
+# Frontend
+node_modules/
+web/dist/
+coverage/
+*.lcov
+coverage.out
+*.coverprofile
+
+# Logs, local databases, daemon data
+*.log
+logs/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+.astrad/
+
+# Source PDFs stay local; docs/PRD.md is the tracked copy
+docs/prd/*.pdf
+
+# Tooling work folders
+.taste-skill/
+.claude/settings.local.json
+
+# OS files
+.DS_Store
+Thumbs.db
