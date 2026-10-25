@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Astra</title>
+    <script>
+      // Set theme and font before first render so the page never flashes (DESIGN_SYSTEM.md §3.1.2, §11).
+      // The daemon holds the real preference; this reads the local cache of it.
+      (function () {
+        var root = document.documentElement;
+        var theme = null;
+        var font = null;
+        try {
+          theme = localStorage.getItem("astra.theme");
+          font = localStorage.getItem("astra.font");
+        } catch (e) {}
+        if (theme !== "dark" && theme !== "light") {
+          theme = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+        }
+        if (font !== "jakarta" && font !== "sf" && font !== "sans") font = "jakarta";
+        // SF Pro is only available on Apple platforms; elsewhere the preference renders as Jakarta.
+        if (font === "sf" && !/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)) font = "jakarta";
+        root.setAttribute("data-theme", theme);
+        root.setAttribute("data-font", font);
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
