@@ -76,10 +76,21 @@ Opsi yang langsung disingkirkan: framework dengan SSR wajib (Next.js, Nuxt, Svel
 
 Rekomendasi ini dianggap benar bila prototype kecil di M0 lulus semua poin berikut. Kalau ada yang gagal, ADR ini direvisi sebelum M1.
 
-1. Board dengan 5 kolom dan 30 kartu, kartu pindah kolom dengan mouse dan keyboard; `inspect.mjs --app` 0 FAIL di 1440, 768, dan 390.
+1. Board dengan 5 kolom dan 30 kartu. Kartu pindah kolom sendiri saat faktanya berubah (F3-06, F4-01), dan urutan di dalam kolom bisa diubah dengan mouse, keyboard, dan klik tunggal (`DESIGN_RULES.md` §6); `inspect.mjs --app` 0 FAIL di 1440, 768, dan 390.
 2. 20 terminal xterm.js dengan WebGL terbuka bersamaan di WebView Wails macOS, Windows, dan Linux (bersama spike S10); ketikan < 100 ms.
 3. 100 perubahan fakta per detik lewat WebSocket tanpa frame jatuh di Board.
 4. Bundle produksi awal dicatat sebagai garis dasar anggaran N-10.
+
+Catatan untuk poin 1: drag antar kolom sengaja tidak ada. Status diturunkan dari fakta, jadi memindahkan kartu ke kolom lain dengan tangan akan bertentangan dengan F3-06.
+
+### Hasil sejauh ini (branch `feat/m0-board-prototype`, 2026-10-25)
+
+| Poin | Status | Bukti dan yang tersisa |
+| --- | --- | --- |
+| 1 | Sebagian | Lulus: 30 kartu di 5 kolom (7/6/7/5/5), kartu berpindah kolom dari fakta dengan animasi, urutan lewat keyboard (React Aria drag, diumumkan ke screen reader) dan lewat menu Move. Tata letak dicek di 1440, 768, 390, tema gelap dan terang. Tersisa: drag dengan mouse belum terbukti (input sintetis browser uji tidak memicu drag HTML5 asli), dan `inspect.mjs --app` belum dijalankan karena taste-skill belum terpasang. |
+| 2 | Belum mulai | Butuh Go dan Wails. |
+| 3 | Sebagian | Simulator di dalam proses (belum lewat WebSocket) mencapai 100 fakta/detik selama 15 detik dengan 0 long task. Frame drop belum terukur karena jendela uji tidak terlihat sehingga browser membatasi frame. Ukur ulang dengan `?sim=100` di `vite preview`. |
+| 4 | Tercatat | JS 145.1 KB gzip dengan React Aria (GridList, drag and drop, Tabs, Tooltip, Menu), dibanding 68.7 KB untuk scaffold React saja. Locale React Aria sudah dipangkas ke en-US dan id-ID. Selisihnya sekitar dua kali perkiraan di bagian Rekomendasi. |
 
 ## Keputusan
 
