@@ -86,13 +86,13 @@ Rekomendasi ini dianggap benar bila prototype kecil di M0 lulus semua poin berik
 
 Catatan untuk poin 1: drag antar kolom sengaja tidak ada. Status diturunkan dari fakta, jadi memindahkan kartu ke kolom lain dengan tangan akan bertentangan dengan F3-06.
 
-### Hasil sejauh ini (branch `feat/m0-board-prototype`, 2026-10-25)
+### Hasil sejauh ini (prototype Board di `main`, 2026-10-25)
 
 | Poin | Status | Bukti dan yang tersisa |
 | --- | --- | --- |
-| 1 | Sebagian | Lulus: 30 kartu di 5 kolom (7/6/7/5/5), kartu berpindah kolom dari fakta dengan animasi, urutan lewat keyboard (React Aria drag, diumumkan ke screen reader) dan lewat menu Move. Tata letak dicek di 1440, 768, 390, tema gelap dan terang. Tersisa: drag dengan mouse belum terbukti (input sintetis browser uji tidak memicu drag HTML5 asli), dan `inspect.mjs --app` belum dijalankan karena taste-skill belum terpasang. |
+| 1 | Sebagian | Lulus: 30 kartu di 5 kolom (7/6/7/5/5), kartu berpindah kolom dari fakta dengan animasi, urutan lewat keyboard (React Aria drag, diumumkan ke screen reader) dan lewat menu Move. Tata letak dicek di 1440, 768, 390, tema gelap dan terang. `lint.mjs --app`: 0 FAIL, 5 WARN (shadow hanya di menu dan tooltip, monospace hanya untuk branch, keduanya diizinkan `DESIGN_RULES.md` §3). `inspect.mjs --app` di build produksi: 0 FAIL di 1440, 768, 390, 1 WARN `tiny-text` (meta kartu 12px sesuai `DESIGN_SYSTEM.md` §3.2). Tersisa: drag dengan mouse belum terbukti (input sintetis browser uji tidak memicu drag HTML5 asli). |
 | 2 | Belum mulai | Butuh Go dan Wails. |
-| 3 | Sebagian | Simulator di dalam proses (belum lewat WebSocket) mencapai 100 fakta/detik selama 15 detik dengan 0 long task. Frame drop belum terukur karena jendela uji tidak terlihat sehingga browser membatasi frame. Ukur ulang dengan `?sim=100` di `vite preview`. |
+| 3 | Lulus di dalam proses | Build produksi, 1440×900, layar 120 Hz, tiga putaran 10 detik di 100 fakta/detik: 112–113 fps, median 8.3 ms, p95 16.6 ms, frame terburuk 25 ms, 0 long task; tanpa simulasi 112 fps. Sekitar 7% frame meleset satu vsync 120 Hz; tidak ada yang melewati anggaran 60 Hz secara berarti. Pengukuran FLIP yang dibatch (baca semua, batalkan semua, baca semua, animasikan) menghilangkan layout thrashing. Tersisa: ulangi lewat WebSocket daemon sungguhan di M1. |
 | 4 | Tercatat | JS 145.1 KB gzip dengan React Aria (GridList, drag and drop, Tabs, Tooltip, Menu), dibanding 68.7 KB untuk scaffold React saja. Locale React Aria sudah dipangkas ke en-US dan id-ID. Selisihnya sekitar dua kali perkiraan di bagian Rekomendasi. |
 
 ## Keputusan
