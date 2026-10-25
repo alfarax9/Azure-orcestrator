@@ -32,6 +32,14 @@ test("statuses keep their identity until a status actually changes", () => {
   expect(store.getStatuses().a).toBe("working");
 });
 
+test("status changes and explicit messages both reach the announcement", () => {
+  const { store } = setup();
+  store.update("a", (w) => ({ ...w, gate: { state: "passed" } }));
+  expect(store.getAnnouncement()).toBe("Fix checkout total rounding is ready to ship");
+  store.announce("Fix checkout total rounding moved to position 2 of 3 in Working");
+  expect(store.getAnnouncement()).toBe("Fix checkout total rounding moved to position 2 of 3 in Working");
+});
+
 test("reorder moves keys next to the target", () => {
   const { store } = setup();
   store.reorder(["c"], "a", "before");
