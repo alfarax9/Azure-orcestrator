@@ -32,7 +32,7 @@ Desktop app `Astra`, CLI `astra`, daemon `astrad`, service `astrad.service`, con
 ## Belum tersedia di repo
 
 - **Bagian 10 dokumen riset** (aturan kode, struktur package, `make check`) dirujuk PRD tapi belum disalin ke sini. Minta ke pemilik produk sebelum menulis kode Go.
-- **Framework frontend** belum diputuskan; usulan ada di `docs/adr/0001-frontend-framework.md` (status: diusulkan).
+- **Framework frontend:** React + TypeScript + Vite (SPA statis), React Aria Components untuk komponen headless. Keputusan dan validasi M0 ada di `docs/adr/0001-frontend-framework.md`.
 
 ## Setup setelah clone
 

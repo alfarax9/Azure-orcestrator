@@ -2,7 +2,7 @@
 
 | Hal | Isi |
 | --- | --- |
-| Status | **Diusulkan** — menunggu keputusan pemilik produk |
+| Status | **Diterima** (2026-10-25): React + TypeScript + Vite |
 | Tanggal | 2026-10-25 |
 | Pemutus | Maulana Alfara Salim |
 | Pengusul | Claude Code |
@@ -37,7 +37,10 @@ Kebutuhan yang menentukan pilihan:
 | Keandalan kode yang ditulis Claude Code | **Tertinggi**: data latih dan pola terbanyak | Tinggi, tapi runes (Svelte 5) masih sering tercampur sintaks Svelte 4 | Sedang; sering salah kaprah sebagai "React" | Tinggi |
 | Lucide | `lucide-react` | `@lucide/svelte` | `lucide-solid` | `lucide-vue-next` |
 
-Opsi yang langsung disingkirkan: framework dengan SSR wajib (Next.js, Nuxt, SvelteKit mode server), karena frontend harus statis dan di-embed ke binary Go; dan library komponen bergaya (MUI, Chakra, shadcn dengan tema bawaan, Vuetify), karena dilarang `DESIGN_RULES.md` §9.
+Opsi yang disingkirkan:
+
+- **Next.js** (dan Nuxt, SvelteKit mode server). Next.js bisa diekspor statis (`output: 'export'`), tetapi mode itu mematikan SSR, API routes, middleware, dan optimasi gambar, sehingga yang tersisa hanya React dengan toolchain lebih berat. Alasan lain: tidak ada kebutuhan SSR atau SEO (dashboard di balik pairing; halaman publik klien dilayani Go); menjalankan server Node di VPS menambah proses, RAM (F10-04, N-09), dan permukaan serangan (F12-02); template Wails resmi dan inspektur taste-skill (`localhost:5173`) memakai Vite. Next.js tetap layak untuk landing page atau situs dokumentasi, sebagai proyek terpisah dari app.
+- **Library komponen bergaya** (MUI, Chakra, shadcn dengan tema bawaan, Vuetify), karena dilarang `DESIGN_RULES.md` §9.
 
 ## Rekomendasi
 
@@ -83,4 +86,4 @@ Rekomendasi ini dianggap benar bila prototype kecil di M0 lulus semua poin berik
 
 ## Keputusan
 
-_Diisi pemilik produk: diterima (React), diterima opsi kedua (Svelte 5), atau ditolak dengan alasan._
+Diterima oleh Maulana Alfara Salim pada 2026-10-25: **React + TypeScript + Vite** sebagai SPA statis, dengan pustaka pendukung pada tabel Rekomendasi. Svelte 5 + Bits UI tetap menjadi opsi cadangan bila validasi M0 gagal. Pemakaian React Aria Components sebagai komponen headless (syarat `DESIGN_RULES.md` §9) disetujui lewat ADR ini.
