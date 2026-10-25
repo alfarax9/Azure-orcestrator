@@ -2,7 +2,7 @@
 
 | Hal | Isi |
 | --- | --- |
-| Status | **Sebagian** (2026-10-26): desain terbukti di macOS; uji di VPS Linux dan dengan CLI agent sungguhan belum |
+| Status | **Sebagian** (2026-10-26): terbukti di macOS, termasuk dengan Claude Code dan Codex sungguhan; uji di VPS Linux belum |
 | Pemutus | Maulana Alfara Salim |
 | Pengusul | Claude Code |
 | Milestone | M0, syarat Gerbang 1 |
@@ -37,12 +37,29 @@ Bisakah daemon menjalankan CLI agent resmi (Claude Code, Codex) secara interakti
 | `make check` | Lulus; coverage `internal/pty` 72.8% |
 | Stabilitas test | 15 kali run berturut-turut dengan `-race` tanpa gagal, tanpa host tertinggal |
 
+### Dengan CLI agent sungguhan (Claude Code 2.1.310, Codex 0.164.0, binary tidak dimodifikasi)
+
+Pemilik produk login sendiri lewat Terminal macOS (F3-03). Uji tidak mengirim prompt, sehingga tidak memakai kuota.
+
+| Uji | Claude Code | Codex |
+| --- | --- | --- |
+| Mulai di PTY lewat `astrad session start` | Lulus; host siap dalam 54 ms, layar pertama muncul | Lulus; layar pertama muncul |
+| Daemon pergi, proses baru menemukan sesi dan attach ulang | Lulus; layar yang sama dirender ulang | Lulus; layar yang sama dirender ulang |
+| Input sampai ke agent | Lulus; Enter pada "No, exit" membuat agent keluar | Ctrl-C diabaikan di dialog trust (perilaku Codex) |
+| Exit code sampai ke daemon | Lulus; kode 1 setelah menolak trust | Lulus; kode 0 setelah Stop |
+| Stop menghentikan seluruh pohon proses | — | Lulus; wrapper Node dan binary native Codex mati bersamaan |
+| Login terbaca dari dalam session host dengan environment terbatas | Lulus; `claude auth status`: `loggedIn: true`, `claude.ai`, `pro` | Lulus; `codex login status`: "Logged in using ChatGPT" |
+
+Login kedua agent (macOS Keychain dan `~/.codex`) tetap terbaca dari host yang dilepas dengan `setsid`, hanya dengan `HOME` dan variabel lain di daftar izin. Daemon tidak membaca kredensial itu.
+
 ### Angka
 
 | Ukuran | Nilai | Catatan |
 | --- | --- | --- |
 | Binary `astrad` linux/amd64 (`-trimpath -ldflags="-s -w"`) | 3,891,360 byte | Belum dijadikan `budgets/binary-size.txt`; riset meminta baseline setelah S1 selesai, termasuk bagian VPS |
-| RSS satu session host | ±6.5 MB di macOS (5 host = 32.3 MB) | Termasuk ring buffer 1 MiB; ukur ulang di Linux untuk N-09 |
+| RSS satu session host | ±6.5–6.8 MB di macOS (5 host = 32.3 MB) | Termasuk ring buffer 1 MiB; ukur ulang di Linux untuk N-09 |
+| RSS Claude Code saat diam | ±207 MB | Lima sesi ±1 GB; besar untuk VPS 4 GB (F10-04) |
+| RSS Codex saat diam | ±149 MB (wrapper Node 47.5 MB + binary native 101 MB) | Lima sesi ±0.75 GB |
 
 ## Temuan selama spike
 
@@ -53,10 +70,12 @@ Bisakah daemon menjalankan CLI agent resmi (Claude Code, Codex) secara interakti
 5. **Host yatim** bila folder socket dihapus. Diperbaiki dengan pemeriksaan file socket berkala.
 6. **Repaint menambah baris prompt** di shell biasa (readline menulis ulang prompt saat SIGWINCH). Kosmetik; untuk TUI justru itu yang dibutuhkan.
 7. **Exit code -1** bila agent dihentikan dengan sinyal (perilaku `exec.ExitError`). Cukup, tetapi API daemon nanti sebaiknya membedakan "dihentikan" dari "gagal".
+8. **Kedua agent meminta "trust folder" di setiap path baru.** Karena setiap worker punya worktree sendiri, setiap worker baru akan dimulai dengan dialog ini dan berstatus "Needs you" sebelum bisa bekerja. Pilihan untuk M1, perlu keputusan pemilik produk: (a) developer menyetujui trust per worker dari UI, atau (b) daemon mencatat trust untuk worktree yang dibuatnya sendiri di konfigurasi agent. Opsi (b) berarti daemon menulis ke `~/.claude.json` dan konfigurasi Codex milik user; perlu ADR dan dicek terhadap aturan PRD §10.
+9. **Memori agent jauh lebih besar dari memori Astra.** Claude Code ±207 MB dan Codex ±149 MB per sesi, dibanding ±7 MB per host. Batas cgroups (F10-04, spike S6) dan jumlah sesi paralel default harus dihitung dari angka agent, bukan dari daemon.
 
 ## Belum terbukti (syarat menutup S1)
 
-1. **CLI agent sungguhan.** `claude` dan `codex` belum terpasang di Mac pengembang. Perlu dipasang, lalu pemilik produk login dengan akunnya sendiri (F3-03); binary tidak dimodifikasi.
+1. **Sesi agent yang benar-benar bekerja.** Uji di atas berhenti di dialog trust. Satu sesi yang menerima prompt nyata, menulis file, dan bertahan saat daemon restart di tengah pekerjaan masih perlu dijalankan; ini memakai kuota agent, jadi dijalankan dengan persetujuan pemilik produk.
 2. **VPS Linux.** Kriteria F3-02 adalah 5 sesi paralel stabil selama 2 jam, dan N-07 menuntut 100% sesi tersambung kembali setelah restart atau update daemon. Keduanya diuji di Ubuntu 24.04.
 3. **systemd.** Dengan `KillMode=control-group` (default), `systemctl stop/restart astrad` ikut membunuh semua proses di cgroup daemon, termasuk host. Unit `astrad.service` perlu `KillMode=process`, atau host dijalankan di scope sendiri (`systemd-run --scope`). Keputusan diambil saat uji di VPS.
 4. **Isolasi user (S3).** Agent harus berjalan sebagai user Linux terpisah (F12-01). Spawner perlu `SysProcAttr.Credential` atau `sudo -u`; itu bagian spike S3.
@@ -65,4 +84,4 @@ Bisakah daemon menjalankan CLI agent resmi (Claude Code, Codex) secara interakti
 
 ## Keputusan
 
-Arsitektur session host terpisah per sesi dipakai untuk M1, menggantikan rencana fallback tmux, karena di macOS semua perilaku yang dibutuhkan sudah terbukti tanpa dependensi selain `creack/pty`. Keputusan ini direvisi bila uji VPS (poin 2 dan 3 di atas) gagal.
+Arsitektur session host terpisah per sesi dipakai untuk M1, menggantikan rencana fallback tmux, karena di macOS semua perilaku yang dibutuhkan sudah terbukti, termasuk dengan Claude Code dan Codex sungguhan, tanpa dependensi selain `creack/pty`. Keputusan ini direvisi bila uji VPS (poin 2 dan 3 di atas) gagal.
