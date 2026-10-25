@@ -61,6 +61,31 @@
   cursor: grab;
 }
 
+/* Card controls stay out of sight until the card is hovered or focused, so 30 cards
+   do not show 60 icons at rest (DESIGN_RULES.md §2.5). Touch screens always show them. */
+@media (hover: hover) {
+  .card-icon-button {
+    opacity: 0;
+    transition:
+      opacity var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out);
+  }
+
+  .card-row:hover .card-icon-button,
+  .card-row[data-focus-visible] .card-icon-button,
+  .card:focus-within .card-icon-button,
+  .card-icon-button[aria-expanded="true"] {
+    opacity: 1;
+  }
+}
+
+/* Touch has no drag handle; the Move menu does the job. */
+@media (hover: none) {
+  .card-drag {
+    display: none;
+  }
+}
+
 /* Floating menu: shadow only, no border (DESIGN_RULES.md §3). */
 .menu-popover {
   min-width: 160px;
