@@ -31,6 +31,12 @@
   color: var(--text);
 }
 
+/* The rail is too narrow for the name, so the status bar carries it (DESIGN_RULES.md §13). */
+.status-bar-brand {
+  color: var(--text);
+  font-weight: 600;
+}
+
 .rail-items {
   flex: 1;
   display: flex;
@@ -221,5 +227,10 @@
     grid-column: 1;
     grid-row: 3;
     bottom: calc(var(--bottom-bar-height) + 1px);
+  }
+
+  /* The phone header already shows the name. */
+  .status-bar-brand {
+    display: none;
   }
 }
