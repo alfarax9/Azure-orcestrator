@@ -68,6 +68,11 @@ export function createWorkerStore(initial: Worker[], schedule: Schedule = nextFr
       order = rest;
       changed();
     },
+    /** Sets the sentence the Board's live region reads out next. */
+    announce(text: string) {
+      lastAnnouncement = text;
+      changed();
+    },
   };
 }
 
