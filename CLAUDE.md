@@ -12,6 +12,9 @@ Pemilik produk dan QA: Maulana Alfara Salim. Implementasi: Claude Code.
 | `docs/design/DESIGN_RULES.md` | Perilaku, larangan, aksesibilitas, checklist §13 | Sebelum membuat atau mengubah UI |
 | `docs/design/DESIGN_SYSTEM.md` | Token, tipografi, komponen, pola layar, kosakata status §10 | Sebelum membuat atau mengubah UI |
 | `docs/git-rules.md` | Aturan commit, branch, PR (dimuat di bawah) | Selalu |
+| `docs/go-rules.md` (lengkap: `docs/research/go-code-rules.md`) | Lapisan package, aturan kode Go, anggaran, `make check` (dimuat di bawah) | Sebelum menulis kode Go |
+| `docs/monorepo.md` | Tiga modul Go (root, `desktop/`, `tools/`) dan `web/`, `replace` desktop, `go.work`, pemeriksaan per modul | Sebelum menyentuh `desktop/`, `tools/`, atau `go.mod` mana pun |
+| `docs/adr/` | Keputusan arsitektur: 0001 frontend, 0002 toolchain Go | Saat keputusan terkait berubah |
 
 Urutan prioritas saat bertentangan: permintaan eksplisit pemilik produk → `DESIGN_RULES.md` → `DESIGN_SYSTEM.md` → default skill.
 
@@ -29,15 +32,22 @@ Urutan prioritas saat bertentangan: permintaan eksplisit pemilik produk → `DES
 
 Desktop app `Astra`, CLI `astra`, daemon `astrad`, service `astrad.service`, config project `astra.yaml`.
 
-## Belum tersedia di repo
+## Stack yang sudah diputuskan
 
-- **Bagian 10 dokumen riset** (aturan kode, struktur package, `make check`) dirujuk PRD tapi belum disalin ke sini. Minta ke pemilik produk sebelum menulis kode Go.
-- **Framework frontend:** React + TypeScript + Vite (SPA statis), React Aria Components untuk komponen headless. Keputusan dan validasi M0 ada di `docs/adr/0001-frontend-framework.md`.
+- **Daemon dan CLI:** Go 1.27, modul `github.com/alfarax9/astra`, `CGO_ENABLED=0` (`docs/adr/0002-go-toolchain.md`).
+- **Frontend:** React + TypeScript + Vite (SPA statis), React Aria Components untuk komponen headless (`docs/adr/0001-frontend-framework.md`).
 
 ## Setup setelah clone
 
-Jalankan `make setup` sekali untuk mengaktifkan hook `commit-msg` di `.githooks/`.
+1. Pasang Go 1.27.3 dan golangci-lint 2.15.0 (binary resmi, lihat ADR 0002).
+2. `make setup` sekali, untuk mengaktifkan hook `commit-msg` dan `pre-push` di `.githooks/`.
+3. `npm ci` di `web/`, lalu `npx skills experimental_install` di root untuk memasang taste-skill dari `skills-lock.json`.
+4. Opsional: `go work init . ./desktop ./tools` untuk editor. `go.work` tidak di-commit, dan Makefile selalu memakai `GOWORK=off`.
 
 ## Aturan git
 
 @docs/git-rules.md
+
+## Aturan kode Go
+
+@docs/go-rules.md
