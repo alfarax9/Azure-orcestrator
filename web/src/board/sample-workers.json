@@ -1,0 +1,36 @@
+[
+  { "id": "w01", "title": "Fix checkout total rounding", "project": "warung-sari / web", "branch": "fix/checkout-total", "agent": "Claude Code", "minutesAgo": 12, "agentActivity": "working", "previewLive": true, "added": 184, "removed": 22 },
+  { "id": "w02", "title": "Add login with WhatsApp OTP", "project": "lumbung-tani / app", "branch": "feat/whatsapp-otp", "agent": "Codex", "minutesAgo": 38, "agentActivity": "working", "added": 412, "removed": 37 },
+  { "id": "w03", "title": "Make product grid load faster", "project": "batik-ayu / shop", "branch": "perf/product-grid", "agent": "Claude Code", "minutesAgo": 7, "agentActivity": "working", "previewLive": true, "added": 96, "removed": 58 },
+  { "id": "w04", "title": "Move booking form to two steps", "project": "klinik-sehat / portal", "branch": "feat/booking-two-step", "agent": "Claude Code", "minutesAgo": 54, "agentActivity": "working", "previewLive": true, "shared": true, "added": 233, "removed": 141 },
+  { "id": "w05", "title": "Rewrite install guide for Debian 12", "project": "astra / docs", "branch": "docs/debian-12-install", "agent": "Codex", "minutesAgo": 21, "clientReview": false, "agentActivity": "working", "added": 158, "removed": 44 },
+  { "id": "w06", "title": "Fix gallery crash on Safari", "project": "studio-rana / site", "branch": "fix/safari-gallery", "agent": "Codex", "minutesAgo": 3, "agentActivity": "working", "previewLive": true, "gate": { "state": "failed", "cause": "lint: 3 errors" }, "added": 14, "removed": 6 },
+  { "id": "w07", "title": "Add stock alerts for sellers", "project": "lumbung-tani / app", "branch": "feat/stock-alerts", "agent": "Claude Code", "minutesAgo": 96, "agentActivity": "working", "previewLive": true, "added": 527, "removed": 88 },
+
+  { "id": "w08", "title": "Translate checkout to Indonesian", "project": "warung-sari / web", "branch": "feat/checkout-id", "agent": "Claude Code", "minutesAgo": 44, "agentActivity": "needs_input", "previewLive": true, "added": 302, "removed": 41 },
+  { "id": "w09", "title": "Connect Midtrans sandbox", "project": "batik-ayu / shop", "branch": "feat/midtrans-sandbox", "agent": "Codex", "minutesAgo": 17, "agentActivity": "needs_input", "added": 189, "removed": 12 },
+  { "id": "w10", "title": "Clean up unused CSS", "project": "studio-rana / site", "branch": "chore/unused-css", "agent": "Codex", "minutesAgo": 131, "added": 8, "removed": 640 },
+  { "id": "w11", "title": "Show doctor schedule on home page", "project": "klinik-sehat / portal", "branch": "feat/doctor-schedule", "agent": "Claude Code", "minutesAgo": 205, "previewLive": true, "gate": { "state": "failed", "cause": "2 tests failing" }, "added": 271, "removed": 35 },
+  { "id": "w12", "title": "Make checkout button larger on phones", "project": "warung-sari / web", "branch": "fix/checkout-button-mobile", "agent": "Claude Code", "minutesAgo": 160, "previewLive": true, "shared": true, "newFeedback": 2, "added": 31, "removed": 9 },
+  { "id": "w13", "title": "Cache harvest price lookups", "project": "lumbung-tani / app", "branch": "perf/price-cache", "agent": "Codex", "minutesAgo": 1520, "gate": { "state": "passed" }, "deployment": { "state": "rolled_back", "reason": "error rate 4.1% within 3 min of deploy" }, "added": 144, "removed": 20 },
+
+  { "id": "w14", "title": "Add size guide to product page", "project": "batik-ayu / shop", "branch": "feat/size-guide", "agent": "Claude Code", "minutesAgo": 63, "previewLive": true, "added": 348, "removed": 17 },
+  { "id": "w15", "title": "Redesign contact section", "project": "studio-rana / site", "branch": "feat/contact-section", "agent": "Claude Code", "minutesAgo": 88, "previewLive": true, "added": 219, "removed": 176 },
+  { "id": "w16", "title": "Add search to docs", "project": "astra / docs", "branch": "feat/docs-search", "agent": "Codex", "minutesAgo": 72, "clientReview": false, "previewLive": true, "added": 402, "removed": 9 },
+  { "id": "w17", "title": "Show order history", "project": "warung-sari / web", "branch": "feat/order-history", "agent": "Codex", "minutesAgo": 115, "previewLive": true, "added": 466, "removed": 51 },
+  { "id": "w18", "title": "New hero copy for Ramadan sale", "project": "batik-ayu / shop", "branch": "content/ramadan-hero", "agent": "Claude Code", "minutesAgo": 240, "previewLive": true, "shared": true, "added": 24, "removed": 18 },
+  { "id": "w19", "title": "Add patient reminder emails", "project": "klinik-sehat / portal", "branch": "feat/reminder-emails", "agent": "Codex", "minutesAgo": 310, "previewLive": true, "shared": true, "added": 383, "removed": 26 },
+  { "id": "w20", "title": "Farmer profile page", "project": "lumbung-tani / app", "branch": "feat/farmer-profile", "agent": "Claude Code", "minutesAgo": 185, "previewLive": true, "shared": true, "added": 297, "removed": 40 },
+
+  { "id": "w21", "title": "Fix tax rounding on invoices", "project": "warung-sari / web", "branch": "fix/invoice-tax", "agent": "Claude Code", "minutesAgo": 52, "previewLive": true, "gate": { "state": "passed" }, "added": 47, "removed": 12 },
+  { "id": "w22", "title": "Lazy-load portfolio images", "project": "studio-rana / site", "branch": "perf/lazy-images", "agent": "Codex", "minutesAgo": 140, "previewLive": true, "gate": { "state": "passed" }, "added": 63, "removed": 21 },
+  { "id": "w23", "title": "Add appointment cancel link", "project": "klinik-sehat / portal", "branch": "feat/cancel-link", "agent": "Claude Code", "minutesAgo": 95, "previewLive": true, "gate": { "state": "passed" }, "added": 128, "removed": 7 },
+  { "id": "w24", "title": "Fix broken links in API docs", "project": "astra / docs", "branch": "fix/api-doc-links", "agent": "Codex", "minutesAgo": 33, "clientReview": false, "previewLive": true, "gate": { "state": "passed" }, "added": 19, "removed": 19 },
+  { "id": "w25", "title": "Add wishlist", "project": "batik-ayu / shop", "branch": "feat/wishlist", "agent": "Claude Code", "minutesAgo": 410, "gate": { "state": "passed" }, "deployment": { "state": "shipping" }, "added": 612, "removed": 45 },
+
+  { "id": "w26", "title": "Fix cart badge count", "project": "warung-sari / web", "branch": "fix/cart-badge", "agent": "Codex", "minutesAgo": 1380, "gate": { "state": "passed" }, "deployment": { "state": "live" }, "added": 22, "removed": 8 },
+  { "id": "w27", "title": "Add harvest calendar", "project": "lumbung-tani / app", "branch": "feat/harvest-calendar", "agent": "Claude Code", "minutesAgo": 2900, "gate": { "state": "passed" }, "deployment": { "state": "live" }, "added": 538, "removed": 63 },
+  { "id": "w28", "title": "Update clinic opening hours", "project": "klinik-sehat / portal", "branch": "content/opening-hours", "agent": "Claude Code", "minutesAgo": 4320, "gate": { "state": "passed" }, "deployment": { "state": "live" }, "added": 6, "removed": 6 },
+  { "id": "w29", "title": "Compress hero video", "project": "studio-rana / site", "branch": "perf/hero-video", "agent": "Codex", "minutesAgo": 260, "gate": { "state": "passed" }, "deployment": { "state": "watching" }, "added": 11, "removed": 3 },
+  { "id": "w30", "title": "Add product reviews", "project": "batik-ayu / shop", "branch": "feat/product-reviews", "agent": "Claude Code", "minutesAgo": 380, "gate": { "state": "passed" }, "deployment": { "state": "watching" }, "added": 701, "removed": 92 }
+]
