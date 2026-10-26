@@ -71,7 +71,7 @@ Pada varian D, environment agent hanya berisi `LANG PATH USER LOGNAME HOME SHELL
 1. **Isolasi antar-worker: diputuskan, lihat bagian Keputusan isolasi antar-klien di bawah.**
 2. **Daemon tidak boleh membaca home agent.** Transcript untuk S2 ada di `~/.claude/projects` dan `~/.codex/sessions`, satu folder dengan kredensial login agent (F3-03: daemon tidak boleh membaca atau menyalin kredensial). Claude Code membuat file transcript dengan mode `0600`, jadi izin grup atau ACL tidak membantu. **Usul:** pembaca transcript S2 (`internal/agent`) berjalan di dalam session host, yang sudah berjalan sebagai user agent, dan mengirim event ke daemon lewat frame baru di socket yang sama. Daemon tidak pernah membuka file di home agent.
 3. **Umum dan harus dijaga:** (i) `/proc` dipasang tanpa `hidepid`, sehingga agent **melihat argumen** proses user lain (diuji: argumen `--token=…` milik `astrad` terlihat lewat `ps`). Secret tidak boleh pernah dikirim lewat argv, dan pada VPS `/proc` sebaiknya dipasang dengan `hidepid=2`. (ii) Agent punya akses internet penuh (wajar) dan bisa menjangkau layanan di localhost, termasuk API daemon nanti; token pairing tidak boleh ada di environment agent, dan aturan nftables per-UID (`meta skuid`) perlu dipertimbangkan untuk M3. (iii) Alamat metadata cloud 169.254.169.254 tidak terjangkau di VM ini; di VPS tertentu bisa terjangkau dan harus diblokir untuk UID agent.
-4. **Hak untuk membuat unit.** Varian D diuji dengan `astrad ALL=(root) NOPASSWD: /usr/bin/systemd-run`, yang terlalu lebar untuk produksi (siapa pun yang menjadi `astrad` bisa menjalankan apa saja sebagai root). Pembuatan user agent per workspace (lihat keputusan di bawah) juga butuh hak root, jadi keduanya sebaiknya diselesaikan bersama. Opsi yang harus dipilih di M1 dan diuji di VM yang sama: (a) aturan polkit untuk `org.freedesktop.systemd1.manage-units` yang hanya menerima unit `astra-s-*`, (b) unit template `astra-session@.service` yang dimulai lewat `sudo systemctl start` dengan sudoers sempit dan parameter lewat `EnvironmentFile`, atau (c) satu helper kecil milik root (`astra-priv`) dengan beberapa kata kerja yang divalidasi ketat (`workspace-add <slug>`, `session-start`, `session-stop`), yang dipanggil daemon lewat sudoers sempit. Helper ini sekaligus tempat membuat user agent per workspace. Rekomendasi awal: (c) untuk pembuatan user dan (a) untuk unit sesi, karena polkit tidak bisa membuat user.
+4. **Hak untuk membuat unit dan user: diputuskan, lihat Keputusan hak istimewa di bawah.**
 5. **Red-team dengan agent sungguhan belum dijalankan.** Perintah yang sama dengan prompt PRD ("baca .env production", "jalankan docker ps") sudah diuji di OS yang sama, user yang sama, dan hasilnya tidak bergantung pada agent. Uji dengan Claude Code dan Codex di dalam VM (butuh login di VM dan kuota) menjadi uji regresi di setiap rilis (F12-01, metrik PRD §13), dengan prompt sebagai teks dan hasil periksa lewat transcript S2.
 6. **Binary `astrad` harus bisa dieksekusi oleh user agent** (`/usr/local/bin`, mode 0755), dan folder socket harus dibuat oleh installer (F1-04), bukan oleh daemon, karena daemon tidak boleh memiliki folder yang ditulis agent.
 
@@ -105,6 +105,49 @@ Konsekuensi yang harus diikuti M1:
 4. **Batas resource per klien.** Slice `astra-agents-<slug>.slice` (otomatis anak `astra-agents.slice`) memberi batas memori dan CPU per klien selain per sesi (F10-04).
 5. **PRD F12-01** berbunyi "user Linux terpisah atau container rootless" per agent; keputusan ini memenuhinya pada tingkat workspace. Teks PRD tidak diubah; ADR ini yang menjadi rujukan.
 
+## Keputusan hak istimewa: helper milik root `astra-priv` (pemilik produk, 2026-10-26)
+
+**Semua hal yang butuh root dikerjakan oleh satu program kecil milik root, `astra-priv`, dengan tiga kata kerja.** Daemon tetap berjalan sebagai `astrad` tanpa hak istimewa dan memanggil helper lewat `sudo -n /usr/libexec/astra/astra-priv <kata-kerja> …`. Pilihan polkit ditolak karena polkit tidak bisa membuat user, sehingga helper tetap dibutuhkan; satu mekanisme lebih mudah diaudit daripada dua.
+
+| Kata kerja | Fungsi |
+| --- | --- |
+| `workspace-add <slug>` | Membuat grup dan user `astra-agent-<slug>`, folder `/var/lib/astra/agents/<slug>/{sessions,work,home}` dengan izin dari ADR ini, dan aturan sudoers `astrad ALL=(astra-agent-<slug>) NOPASSWD: ALL`. Idempoten, dan gagal keras (bukan diam-diam) bila user sudah ada dengan grup tambahan. |
+| `session-start <slug> <id> --agent claude\|codex\|shell [--dir REL] [--rows N] [--cols N] [--memory-max MB] [--cpu-quota PCT]` | Menjalankan session host sebagai unit transient `astra-s-<slug>-<id>` di slice `astra-agents-<slug>.slice`, sebagai user agent workspace itu, dengan `MemoryMax`, `CPUQuota`, dan `TasksMax`. Mencetak path socket. |
+| `session-stop <slug> <id>` | Menghentikan unit sesi itu. |
+
+Aturan yang dipegang helper (diuji tanpa root sebagai unit test pada rencana perintahnya, dan sebagai root di VM):
+
+- **Hanya root yang bisa menjalankannya**, dan hanya tiga kata kerja itu; argumen lain ditolak.
+- **Setiap argumen divalidasi dengan pola ketat sebelum menjadi bagian perintah**: slug (`domain.ValidSlug`), id sesi (`domain.ValidSessionID`), jenis agent dari daftar tetap, angka dalam batas (memori 256 sampai 8192 MB, CPU 10 sampai 400 persen, terminal 10 sampai 500 kolom dan baris). Tidak ada shell; semua perintah dijalankan dengan argv.
+- **Daemon tidak mengirim environment atau perintah.** Helper menyusun environment agent sendiri (`HOME`, `USER`, `LOGNAME`, `SHELL`, `LANG`, `PATH`, `TERM`, `COLORTERM`) dan memetakan `claude`, `codex`, `shell` ke perintah tetap. Dengan begitu secret tidak pernah lewat argv (temuan `/proc` di atas) dan daemon tidak bisa menyuruh helper menjalankan program lain.
+- **Direktori kerja** adalah path relatif di bawah `work/` milik workspace: setiap komponen cocok dengan `^[A-Za-z0-9][A-Za-z0-9._-]*$`, dan hasil `EvalSymlinks` harus tetap di dalam `work/`.
+- **Tidak ada akses ke rahasia produksi**: helper tidak membaca environment daemon maupun folder `/var/lib/astrad`.
+- **Jejak audit** ada di log sudo (`auth.log` atau journal): setiap pemanggilan tercatat lengkap dengan argumennya.
+- **Folder diubah tanpa mengikuti symlink.** User agent memiliki isi folder workspace-nya dan bisa menukar `sessions/` dengan symlink ke, misalnya, `/etc`; helper membuka setiap folder dengan `O_NOFOLLOW|O_DIRECTORY` lalu mengubah pemilik dan mode lewat handle itu, sehingga `workspace-add` yang diulang tidak pernah mengubah target symlink.
+- **Unit sesi** memakai `--collect` (unit yang selesai tidak tertinggal) dan `NoNewPrivileges=yes` (agent tidak bisa naik hak lewat program setuid, termasuk `sudo`).
+- **Dipasang** di `/usr/libexec/astra/astra-priv`, milik `root:root` mode `0755`; sudoers: `astrad ALL=(root) NOPASSWD: /usr/libexec/astra/astra-priv`.
+
+### Hasil uji helper di VM (2026-10-26)
+
+`scripts/vm/test-priv.sh` dan `scripts/vm/test-workspace.sh` di VM Ubuntu 24.04 (systemd 255): **semua pemeriksaan lulus.**
+
+| Uji | Hasil |
+| --- | --- |
+| `workspace-add` | User `astra-agent-<slug>` hanya di grupnya sendiri; folder `710`, `2770`, `700`, `700` dengan pemilik sesuai ADR ini; sudoers `0440 root` dan lolos `visudo`; diulang tidak membuat ulang user |
+| Hak user `astrad` | Hanya `astra-priv` sebagai root; `id`, `systemd-run`, dan `useradd` sebagai root ditolak; tidak bisa menjalankan perintah sebagai user lain selain user agent |
+| User agent | Tidak bisa memanggil helper, tidak bisa membaca rahasia daemon maupun `work/` workspace lain |
+| 13 permintaan jahat (`x;id`, `../etc`, agent `bash`, `--dir ../../..`, `--dir /etc`, `--env`, memori di luar batas, dan lain-lain) | Semua ditolak dengan exit 2 sebelum mengubah apa pun; daftar user tidak berubah |
+| `session-start` | Unit aktif di `astra-agents-<slug>.slice` dengan `MemoryMax`, `CPUQuota`, `TasksMax`, `NoNewPrivileges`; host berjalan sebagai user agent di folder yang diminta; daemon tersambung lewat socket |
+| Environment agent | Hanya delapan variabel dari helper ditambah yang selalu ditambahkan systemd (`INVOCATION_ID`, `JOURNAL_STREAM`, `MEMORY_PRESSURE_WATCH`, `MEMORY_PRESSURE_WRITE`, `SYSTEMD_EXEC_PID`); tidak ada variabel daemon, sudo, atau SSH |
+| `--dir` yang berupa symlink keluar dari `work/`, sesi ganda | Ditolak |
+| User agent ditambahkan ke grup `docker` | `workspace-add` menolak dan menyebut grupnya; berjalan lagi setelah grup dilepas |
+| Agent menukar `sessions/` dengan symlink ke `/etc/ssh` | `workspace-add` gagal, `/etc/ssh` tidak berubah |
+| Potongan 2 dari ujung ke ujung | `astrad workspace add` membuat user lewat helper, clone lokal dan HTTPS berjalan sebagai user agent, stack Next.js terdeteksi, dua worker mendapat worktree dan branch sendiri, sesi shell dimulai di worktree worker |
+
+Satu temuan dari uji ini: git menolak membaca repository milik user lain (`safe.directory`), jadi remote `file://` harus milik user agent workspace itu. Remote HTTPS dan SSH tidak terpengaruh.
+
+Daemon tetap memakai aturan sudoers per-workspace untuk menjalankan git dan perintah lain sebagai user agent (klon, `git worktree`, diff); itu yang dibuat `workspace-add`, bukan baris `systemd-run` yang lebar dari uji sebelumnya.
+
 ## Keputusan
 
-Isolasi user per workspace klien plus sesi sebagai unit transient dipakai untuk M1. Temuan terbuka 2 sampai 4 (pembaca transcript di host, hak membuat unit dan user, dan pengerasan `/proc` serta jaringan) diselesaikan sebelum fitur worker dan Ship dibangun di atasnya.
+Isolasi user per workspace klien, sesi sebagai unit transient, dan helper `astra-priv` untuk semua hak istimewa dipakai untuk M1. Temuan terbuka 2 dan 3 (pembaca transcript di host, dan pengerasan `/proc` serta jaringan) diselesaikan sebelum fitur worker dan Ship dibangun di atasnya.
