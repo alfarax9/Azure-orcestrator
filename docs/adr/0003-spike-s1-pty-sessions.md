@@ -2,7 +2,7 @@
 
 | Hal | Isi |
 | --- | --- |
-| Status | **Sebagian** (2026-10-26): terbukti di macOS, termasuk dengan Claude Code dan Codex sungguhan; uji di VPS Linux belum |
+| Status | **Sebagian** (2026-10-26): terbukti di macOS, termasuk Claude Code dan Codex yang mengerjakan task nyata; uji di VPS Linux belum |
 | Pemutus | Maulana Alfara Salim |
 | Pengusul | Claude Code |
 | Milestone | M0, syarat Gerbang 1 |
@@ -52,6 +52,26 @@ Pemilik produk login sendiri lewat Terminal macOS (F3-03). Uji tidak mengirim pr
 
 Login kedua agent (macOS Keychain dan `~/.codex`) tetap terbaca dari host yang dilepas dengan `setsid`, hanya dengan `HOME` dan variabel lain di daftar izin. Daemon tidak membaca kredensial itu.
 
+### Uji kerja dengan kuota (dijalankan pemilik produk, 2026-10-26)
+
+Pemilik produk menjalankan `astrad session start/send/tail` dari Terminal macOS di folder `~/astra-s1/work`. Setiap `send` dan `tail` adalah proses terpisah yang attach lalu pergi, jadi agent bekerja tanpa daemon yang terpasang di antara perintah.
+
+| Agent | Hasil |
+| --- | --- |
+| Claude Code | **Lulus.** Trust diterima lewat input (`\x1b[B\r`), prompt dikirim dan dijalankan. Menurut transcript, pukul 11:04:09 Claude membuat `notes.md` dan `count.sh` lewat Bash, lalu memeriksa dan menjalankannya pukul 11:04:19. Kedua file benar dan `count.sh` executable. Prompt yang terkirim dua kali ditangani dengan benar ("Both files are already there"). `/exit` keluar dengan kode 0. |
+| Codex, run pertama (pemilik produk) | **Tidak selesai.** Trust diterima (folder tercatat di `~/.codex/config.toml`). Layar terakhir menampilkan "tab to queue message", yang berarti Codex sedang mengerjakan prompt; `astrad session stop` dijalankan beberapa detik kemudian dan menghentikannya di tengah jalan, sehingga `README.md` tidak dibuat dan tidak ada thread yang tersimpan. |
+| Codex, run ulang (Claude Code, kuota minimal) | **Lulus.** Prompt dikirim sebagai bracketed paste (`\x1b[200~...\x1b[201~`), jeda 1 detik, lalu Enter. Tanpa daemon terpasang, Codex membaca `count.sh`, membuat `README.md` (+3 −0) yang benar, tidak mengubah file lain, dan selesai dalam 8 detik. Database Codex mencatat tepat satu thread. Stop setelahnya keluar dengan kode 0. |
+
+Temuan dari uji ini:
+
+- **Prompt untuk Codex harus dikirim sebagai bracketed paste.** Teks yang dikirim sekaligus tanpa penanda paste ditahan oleh deteksi "paste burst" Codex: tampil terlambat satu langkah (baru muncul saat input berikutnya datang), dan Enter sesudahnya tidak mengirim prompt. Bracketed paste lalu Enter terpisah langsung berhasil. Ini penting untuk M1, karena daemon harus memasukkan task ke agent tanpa manusia mengetik (komentar klien F6-03, error gate F7-02). Codex menyalakan mode bracketed paste (`ESC[?2004h`) sendiri, jadi cara ini memang didukung.
+- **TUI bertanya ke terminal dan tidak ada yang menjawab.** Saat mulai, Codex mengirim query posisi kursor (`ESC[6n`), device attributes (`ESC[c`), flag kitty keyboard protocol (`ESC[?u`, setelah menyalakan `ESC[>7u`), dan warna latar (OSC 10/11). Tanpa emulator terminal, query itu tidak terjawab; Codex tetap jalan, tetapi untuk M1 perlu diputuskan apakah host menjawab query dasar ini sendiri ketika tidak ada terminal web yang terpasang.
+- **Database Codex ditulis setelah satu giliran selesai**, bukan saat prompt dikirim. Polling tabel `threads` tidak bisa dipakai untuk mengetahui apakah prompt sudah terkirim; layar (atau adapter S2) yang harus dipakai.
+- **Layar TUI baru bisa dibaca dengan emulator terminal sungguhan.** Uji ulang memakai `pyte` di virtualenv sementara untuk merender scrollback; hasilnya persis seperti layar Codex, sedangkan `tail -strip` menumpuk layar lama dan baru.
+- **Sesi yang sudah selesai masih muncul di `astrad session ls`** selama host menunggu exit code diambil (sampai 10 menit). Sesuai desain, tetapi daftar sesi perlu membedakan "berjalan" dan "selesai, exit code belum diambil".
+- **`tail -strip` tidak layak untuk melihat TUI.** Scrollback berisi seluruh riwayat redraw, sehingga layar lama dan baru bertumpuk. Untuk M1, tampilan terminal harus memakai emulator sungguhan (xterm.js di web UI), bukan teks yang dibersihkan.
+- **Untuk S2:** transcript Claude Code berupa JSONL di `~/.claude/projects/<path>/<uuid>.jsonl`, dengan entri `tool_use` (nama tool dan input) yang cukup untuk tampilan terstruktur. Codex 0.164 tidak lagi menulis `~/.codex/sessions/*.jsonl`; state-nya ada di SQLite (`~/.codex/state_5.sqlite`, tabel `threads` dengan kolom `rollout_path`). Format itu tidak didokumentasikan, sehingga adapter Codex di S2 lebih berisiko (PRD §14).
+
 ### Angka
 
 | Ukuran | Nilai | Catatan |
@@ -75,13 +95,12 @@ Login kedua agent (macOS Keychain dan `~/.codex`) tetap terbaca dari host yang d
 
 ## Belum terbukti (syarat menutup S1)
 
-1. **Sesi agent yang benar-benar bekerja.** Uji di atas berhenti di dialog trust. Satu sesi yang menerima prompt nyata, menulis file, dan bertahan saat daemon restart di tengah pekerjaan masih perlu dijalankan; ini memakai kuota agent, jadi dijalankan dengan persetujuan pemilik produk.
-2. **VPS Linux.** Kriteria F3-02 adalah 5 sesi paralel stabil selama 2 jam, dan N-07 menuntut 100% sesi tersambung kembali setelah restart atau update daemon. Keduanya diuji di Ubuntu 24.04.
-3. **systemd.** Dengan `KillMode=control-group` (default), `systemctl stop/restart astrad` ikut membunuh semua proses di cgroup daemon, termasuk host. Unit `astrad.service` perlu `KillMode=process`, atau host dijalankan di scope sendiri (`systemd-run --scope`). Keputusan diambil saat uji di VPS.
-4. **Isolasi user (S3).** Agent harus berjalan sebagai user Linux terpisah (F12-01). Spawner perlu `SysProcAttr.Credential` atau `sudo -u`; itu bagian spike S3.
-5. **Versi protokol.** Host yang berjalan bisa lebih tua dari daemon setelah update. Frame `attach` sebaiknya membawa versi protokol sebelum M1 (N-16).
-6. **Ketikan < 100 ms (N-01)** diukur bersama terminal web di M1.
+1. **VPS Linux.** Kriteria F3-02 adalah 5 sesi paralel stabil selama 2 jam, dan N-07 menuntut 100% sesi tersambung kembali setelah restart atau update daemon. Keduanya diuji di Ubuntu 24.04.
+2. **systemd.** Dengan `KillMode=control-group` (default), `systemctl stop/restart astrad` ikut membunuh semua proses di cgroup daemon, termasuk host. Unit `astrad.service` perlu `KillMode=process`, atau host dijalankan di scope sendiri (`systemd-run --scope`). Keputusan diambil saat uji di VPS.
+3. **Isolasi user (S3).** Agent harus berjalan sebagai user Linux terpisah (F12-01). Spawner perlu `SysProcAttr.Credential` atau `sudo -u`; itu bagian spike S3.
+4. **Versi protokol.** Host yang berjalan bisa lebih tua dari daemon setelah update. Frame `attach` sebaiknya membawa versi protokol sebelum M1 (N-16).
+5. **Ketikan < 100 ms (N-01)** diukur bersama terminal web di M1.
 
 ## Keputusan
 
-Arsitektur session host terpisah per sesi dipakai untuk M1, menggantikan rencana fallback tmux, karena di macOS semua perilaku yang dibutuhkan sudah terbukti, termasuk dengan Claude Code dan Codex sungguhan, tanpa dependensi selain `creack/pty`. Keputusan ini direvisi bila uji VPS (poin 2 dan 3 di atas) gagal.
+Arsitektur session host terpisah per sesi dipakai untuk M1, menggantikan rencana fallback tmux, karena di macOS semua perilaku yang dibutuhkan sudah terbukti, termasuk dengan Claude Code dan Codex sungguhan, tanpa dependensi selain `creack/pty`. Keputusan ini direvisi bila uji VPS (poin 1 dan 2 di bagian Belum terbukti) gagal.
