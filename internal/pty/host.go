@@ -29,6 +29,7 @@ var socketCheck = 10 * time.Second
 // HostConfig describes one session host.
 type HostConfig struct {
 	Socket     string
+	SocketMode os.FileMode // permissions of the socket and log; zero means 0600
 	Argv       []string
 	Dir        string
 	Env        []string // the agent's whole environment
@@ -62,7 +63,10 @@ type host struct {
 // exited and a daemon has read the exit code (or cfg.Linger has passed), or when ctx is
 // cancelled, in which case the agent is stopped first.
 func Serve(ctx context.Context, cfg HostConfig) error {
-	ln, err := listen(ctx, cfg.Socket)
+	if cfg.SocketMode == 0 {
+		cfg.SocketMode = 0o600
+	}
+	ln, err := listen(ctx, cfg.Socket, cfg.SocketMode)
 	if err != nil {
 		return err
 	}
@@ -105,7 +109,7 @@ func Serve(ctx context.Context, cfg HostConfig) error {
 	return nil
 }
 
-func listen(ctx context.Context, socket string) (net.Listener, error) {
+func listen(ctx context.Context, socket string, mode os.FileMode) (net.Listener, error) {
 	if ping(ctx, socket) == nil {
 		return nil, fmt.Errorf("session %s is already running", socket)
 	}
@@ -117,7 +121,7 @@ func listen(ctx context.Context, socket string) (net.Listener, error) {
 	if err != nil {
 		return nil, fmt.Errorf("listen %s: %w", socket, err)
 	}
-	if err := os.Chmod(socket, 0o600); err != nil {
+	if err := os.Chmod(socket, mode); err != nil {
 		_ = ln.Close()
 		return nil, fmt.Errorf("restrict socket: %w", err)
 	}
