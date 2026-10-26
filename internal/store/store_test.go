@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"errors"
+	"io/fs"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -28,7 +29,8 @@ func workspace(slug string) domain.Workspace {
 func project(ws domain.Workspace, name string) domain.Project {
 	return domain.Project{
 		ID: domain.NewProjectID(), WorkspaceID: ws.ID, Name: name, RepoURL: "https://example.com/" + name + ".git",
-		DefaultBranch: "main", Commands: domain.Commands{Dev: "npm run dev", Build: "npm run build", Test: "npm test"},
+		DefaultBranch: "main", Stack: "nextjs",
+		Commands:  domain.Commands{Dev: "npm run dev", Build: "npm run build", Test: "npm test"},
 		CreatedAt: domain.Timestamp{Time: time.UnixMilli(1700000001000)},
 	}
 }
@@ -71,6 +73,23 @@ func TestWorkspacesAndProjectsRoundTrip(t *testing.T) {
 	all, err := s.Workspaces(ctx)
 	if err != nil || len(all) != 1 {
 		t.Fatalf("workspaces: %+v, %v", all, err)
+	}
+}
+
+func TestCorrectedCommandsAreKept(t *testing.T) {
+	ctx := t.Context()
+	s := open(t)
+	_, p := seed(t, s, "acme")
+	fixed := domain.Commands{Dev: "pnpm dev", Build: "pnpm build"}
+	if err := s.SetCommands(ctx, p.ID, fixed); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.Project(ctx, p.ID)
+	if err != nil || got.Commands != fixed || got.Stack != "nextjs" {
+		t.Fatalf("project = %+v, %v", got, err)
+	}
+	if err := s.SetCommands(ctx, domain.NewProjectID(), fixed); !errors.Is(err, domain.ErrNotFound) {
+		t.Errorf("unknown project: err = %v, want ErrNotFound", err)
 	}
 }
 
@@ -212,8 +231,9 @@ func TestDataSurvivesReopeningAndMigrationsRunOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 	var version int
-	if err := s.db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil || version != 1 {
-		t.Fatalf("schema version %d, %v", version, err)
+	files, _ := fs.Glob(migrations, "migrations/*.sql")
+	if err := s.db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil || version != len(files) {
+		t.Fatalf("schema version %d, %v, want %d", version, err, len(files))
 	}
 	_ = s.Close()
 
