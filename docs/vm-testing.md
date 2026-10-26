@@ -23,11 +23,12 @@ SSH masuk lewat port yang diteruskan ke host: `scripts/vm/ssh.sh 'uname -a'` (`d
 
 ## Menyiapkan isolasi dan menjalankan uji
 
-Salin `astrad` untuk `linux/arm64` ke VM, lalu:
+Salin `astrad` dan `astra-priv` untuk `linux/arm64` ke VM, lalu:
 
 ```sh
-CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags='-s -w' -o astrad-linux-arm64 ./cmd/astrad
-scp -i ~/.ssh/astra_vm -P 2222 astrad-linux-arm64 dev@127.0.0.1:/tmp/astrad
+for c in astrad astra-priv; do CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags='-s -w' -o /tmp/$c-linux ./cmd/$c; done
+scp -i ~/.ssh/astra_vm -P 2222 /tmp/astrad-linux dev@127.0.0.1:/tmp/astrad
+scp -i ~/.ssh/astra_vm -P 2222 /tmp/astra-priv-linux dev@127.0.0.1:/tmp/astra-priv
 scripts/vm/ssh.sh 'sudo install -m 0755 /tmp/astrad /usr/local/bin/astrad'
 ```
 
@@ -36,5 +37,7 @@ scripts/vm/ssh.sh 'sudo install -m 0755 /tmp/astrad /usr/local/bin/astrad'
 | `scripts/vm/setup-isolation.sh <slug>...` | Memasang Docker, membuat user `astrad` dan satu user `astra-agent-<slug>` per workspace, folder, rahasia palsu, dan aturan sudoers (contoh: `acme rina`) |
 | `scripts/vm/redteam-s3.sh [ws] [lain]` | Menjalankan serangan sebagai agent workspace `ws` (termasuk ke workspace `lain`) dan memeriksa semuanya ditolak (spike S3) |
 | `scripts/vm/killmode-test.sh [ws]` | Membandingkan nasib sesi saat daemon di-restart: `KillMode` bawaan, `KillMode=process`, dan unit transient per sesi (spike S1 systemd) |
+| `scripts/vm/test-priv.sh <astra-priv> <astrad>` | Memasang helper root `astra-priv` dan aturan sudo-nya, lalu menguji ketiga kata kerjanya dan menyerangnya sebagai daemon dan sebagai agent (ADR 0005) |
+| `scripts/vm/test-workspace.sh <astra-priv> <astrad>` | Potongan 2 M1 dari ujung ke ujung: workspace lewat helper, clone, deteksi stack, worktree per worker, dan sesi di worktree worker |
 
-Salin skrip ke VM dengan `scp` seperti di atas, jalankan `sudo bash /tmp/setup-isolation.sh acme rina`, lalu `bash /tmp/redteam-s3.sh acme rina` dan `bash /tmp/killmode-test.sh acme`. Hasil dan keputusannya ada di `docs/adr/0005-spike-s3-isolation-and-systemd.md`.
+Salin skrip ke VM dengan `scp` seperti di atas, jalankan `sudo bash /tmp/setup-isolation.sh acme rina`, lalu `bash /tmp/redteam-s3.sh acme rina`, `bash /tmp/killmode-test.sh acme`, `bash /tmp/test-priv.sh /tmp/astra-priv /tmp/astrad`, dan `bash /tmp/test-workspace.sh /tmp/astra-priv /tmp/astrad`. Hasil dan keputusannya ada di `docs/adr/0005-spike-s3-isolation-and-systemd.md`.
