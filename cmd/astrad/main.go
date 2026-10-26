@@ -20,6 +20,8 @@ func main() {
 			os.Exit(pty.HostMain(os.Args[2:], os.Environ()))
 		case "session":
 			os.Exit(runSession(os.Args[2:]))
+		case "events":
+			os.Exit(runEvents(os.Args[2:]))
 		}
 	}
 	showVersion := flag.Bool("version", false, "print the version and exit")
