@@ -23,11 +23,18 @@ const HostCommand = "session-host"
 
 const readyTimeout = 5 * time.Second
 
-var validID = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,39}$`)
+var (
+	validID   = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,39}$`)
+	validUser = regexp.MustCompile(`^[a-z_][a-z0-9_-]{0,31}$`)
+)
+
+// sharedMode lets the daemon's group use the socket of a session that runs as another user.
+const sharedMode = 0o660
 
 // Spec describes the agent a new session runs.
 type Spec struct {
 	ID         string
+	User       string // run the agent as this Linux user, through sudo; empty: as the caller
 	Argv       []string
 	Dir        string
 	Env        []string // the agent's whole environment; nothing is inherited from the daemon
@@ -60,17 +67,41 @@ func (s Spawner) Start(ctx context.Context, spec Spec) (string, error) {
 		return "", fmt.Errorf("create socket dir: %w", err)
 	}
 	sock := s.Socket(spec.ID)
-	args := []string{
-		HostCommand, "--detach", "--socket", sock, "--dir", spec.Dir,
-		"--rows", strconv.Itoa(int(spec.Rows)), "--cols", strconv.Itoa(int(spec.Cols)),
-		"--scrollback", strconv.Itoa(s.Scrollback), "--linger", s.Linger.String(), "--",
+	cmd, err := s.launchCommand(ctx, spec, sock)
+	if err != nil {
+		return "", err
 	}
-	cmd := exec.CommandContext(ctx, s.Executable, append(args, spec.Argv...)...) //nolint:gosec // our own binary
-	cmd.Env = spec.Env
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return "", fmt.Errorf("launch session host: %w: %s", err, strings.TrimSpace(string(out)))
 	}
 	return sock, waitReady(ctx, sock)
+}
+
+// launchCommand builds the command that starts a detached host for spec. For another
+// user it goes through sudo, which resets the environment; env -i then hands the agent
+// exactly spec.Env, so nothing of the daemon's environment reaches it (F12-01, N-11).
+func (s Spawner) launchCommand(ctx context.Context, spec Spec, sock string) (*exec.Cmd, error) {
+	host := []string{
+		s.Executable, HostCommand, "--detach", "--socket", sock, "--dir", spec.Dir,
+		"--rows", strconv.Itoa(int(spec.Rows)), "--cols", strconv.Itoa(int(spec.Cols)),
+		"--scrollback", strconv.Itoa(s.Scrollback), "--linger", s.Linger.String(),
+	}
+	if spec.User == "" {
+		host = append(host, "--")
+		cmd := exec.CommandContext(ctx, host[0], append(host[1:], spec.Argv...)...) //nolint:gosec // our own binary
+		cmd.Env = spec.Env
+		return cmd, nil
+	}
+	if !validUser.MatchString(spec.User) {
+		return nil, fmt.Errorf("invalid user name %q", spec.User)
+	}
+	host = append(host, "--socket-mode", strconv.FormatUint(sharedMode, 8), "--")
+	argv := []string{"-n", "-u", spec.User, "--", "/usr/bin/env", "-i"}
+	argv = append(append(append(argv, spec.Env...), host...), spec.Argv...)
+	cmd := exec.CommandContext(ctx, "sudo", argv...) //nolint:gosec // user name validated above
+	cmd.Env = []string{"PATH=/usr/bin:/bin"}
+	cmd.Dir = "/" // the caller's folder may be out of the agent user's reach
+	return cmd, nil
 }
 
 func waitReady(ctx context.Context, sock string) error {
@@ -116,6 +147,7 @@ func HostMain(args, env []string) int {
 	cfg := HostConfig{Env: env}
 	fs.StringVar(&cfg.Socket, "socket", "", "unix socket to serve")
 	fs.StringVar(&cfg.Dir, "dir", "", "working directory of the agent")
+	mode := fs.String("socket-mode", "600", "octal permissions of the socket and log")
 	rows := fs.Uint("rows", 24, "terminal rows")
 	cols := fs.Uint("cols", 80, "terminal columns")
 	fs.IntVar(&cfg.Scrollback, "scrollback", 1<<20, "bytes of output to keep")
@@ -123,6 +155,11 @@ func HostMain(args, env []string) int {
 	if err := fs.Parse(args); err != nil || cfg.Socket == "" || fs.NArg() == 0 {
 		return 2
 	}
+	perm, err := strconv.ParseUint(*mode, 8, 32)
+	if err != nil || perm&^0o770 != 0 {
+		return 2 // owner and group bits only: a socket is never opened to everyone
+	}
+	cfg.SocketMode = os.FileMode(perm)
 	cfg.Argv, cfg.Rows, cfg.Cols = fs.Args(), uint16(*rows), uint16(*cols) //nolint:gosec // terminal sizes are small
 	cfg.Logger = slog.New(slog.NewTextHandler(os.Stderr, nil))
 	if *detach {
@@ -145,7 +182,7 @@ func detachHost(args, env []string, cfg HostConfig) int {
 		cfg.Logger.Error("find own binary", "err", err)
 		return 1
 	}
-	logFile, err := os.OpenFile(strings.TrimSuffix(cfg.Socket, ".sock")+".log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+	logFile, err := os.OpenFile(strings.TrimSuffix(cfg.Socket, ".sock")+".log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, cfg.SocketMode)
 	if err != nil {
 		cfg.Logger.Error("open host log", "err", err)
 		return 1
