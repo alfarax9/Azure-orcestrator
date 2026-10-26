@@ -86,9 +86,15 @@ linters:
               desc: define a small interface here; cmd/astrad wires the implementation
             - pkg: github.com/alfarax9/astra/internal/remote
               desc: define a small interface here; cmd/astrad wires the implementation
+            - pkg: github.com/alfarax9/astra/internal/asuser
+              desc: define a small interface here; cmd/astrad wires the implementation
+            - pkg: github.com/alfarax9/astra/internal/priv
+              desc: only cmd/astra-priv uses the root helper's code
         infra-skips-protocol:
           files:
             - "**/internal/store/**"
+            - "**/internal/priv/**"
+            - "**/internal/asuser/**"
             - "**/internal/proxy/**"
             - "**/internal/pty/**"
             - "**/internal/agentcli/**"
