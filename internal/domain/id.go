@@ -2,6 +2,7 @@ package domain
 
 import (
 	"errors"
+	"regexp"
 	"uuid"
 )
 
@@ -25,6 +26,12 @@ func NewProjectID() ProjectID { return ProjectID(uuid.NewV7().String()) }
 // NewWorkerID returns a new worker identifier. It is also the name of the worker's agent
 // session, so it must stay lowercase letters, digits and hyphens.
 func NewWorkerID() WorkerID { return WorkerID(uuid.NewV7().String()) }
+
+var sessionIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,39}$`)
+
+// ValidSessionID reports whether s may name an agent session. It becomes part of a socket
+// path and a systemd unit name, so it stays lowercase letters, digits and hyphens.
+func ValidSessionID(s string) bool { return sessionIDPattern.MatchString(s) }
 
 // Errors callers branch on: the API answers 404 and 409 for them.
 var (
