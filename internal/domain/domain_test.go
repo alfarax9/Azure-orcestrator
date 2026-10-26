@@ -128,6 +128,27 @@ func TestWorkspaceSlugsFitAUserNameAndAFolder(t *testing.T) {
 	}
 }
 
+func TestNamesThatBecomeFoldersOrUnits(t *testing.T) {
+	for _, ok := range []string{"web", "site.v2", "api_server"} {
+		if !ValidProjectName(ok) {
+			t.Errorf("project name %q should be valid", ok)
+		}
+	}
+	if id := string(NewWorkerID()); !ValidSessionID(id) {
+		t.Errorf("worker id %q must be usable as a session id", id)
+	}
+	for _, bad := range []string{"", ".git", "..", "-x", "Web", "a/b", "a b", strings.Repeat("a", 64)} {
+		if ValidProjectName(bad) {
+			t.Errorf("project name %q should be rejected", bad)
+		}
+	}
+	for _, bad := range []string{"", "-x", "S1", "a_b", "a.b", "s1;id", strings.Repeat("a", 41)} {
+		if ValidSessionID(bad) {
+			t.Errorf("session id %q should be rejected", bad)
+		}
+	}
+}
+
 func TestASecretNeverPrintsItsValue(t *testing.T) {
 	s := NewSecret("cf-token-1234567890")
 	var logged bytes.Buffer
