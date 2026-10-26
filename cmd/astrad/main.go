@@ -22,6 +22,8 @@ func main() {
 			os.Exit(runSession(os.Args[2:]))
 		case "events":
 			os.Exit(runEvents(os.Args[2:]))
+		case "workspace", "project", "worker":
+			os.Exit(runObjects(os.Args[1], os.Args[2:]))
 		}
 	}
 	showVersion := flag.Bool("version", false, "print the version and exit")
