@@ -1,0 +1,474 @@
+[
+  {
+    "name": "a fresh worker waits for the next message",
+    "facts": {
+      "clientReview": true,
+      "agentActivity": "idle",
+      "previewLive": false,
+      "shared": false,
+      "newFeedback": 0,
+      "gate": {
+        "state": "none"
+      },
+      "deployment": {
+        "state": "none"
+      }
+    },
+    "status": "needs_you",
+    "stages": [
+      "done",
+      "running",
+      "pending",
+      "pending",
+      "pending",
+      "pending",
+      "pending"
+    ]
+  },
+  {
+    "name": "an agent that is writing",
+    "facts": {
+      "clientReview": true,
+      "agentActivity": "working",
+      "previewLive": false,
+      "shared": false,
+      "newFeedback": 0,
+      "gate": {
+        "state": "none"
+      },
+      "deployment": {
+        "state": "none"
+      }
+    },
+    "status": "working",
+    "stages": [
+      "done",
+      "running",
+      "pending",
+      "pending",
+      "pending",
+      "pending",
+      "pending"
+    ]
+  },
+  {
+    "name": "a working agent with its preview up",
+    "facts": {
+      "clientReview": true,
+      "agentActivity": "working",
+      "previewLive": true,
+      "shared": false,
+      "newFeedback": 0,
+      "gate": {
+        "state": "none"
+      },
+      "deployment": {
+        "state": "none"
+      }
+    },
+    "status": "working",
+    "stages": [
+      "done",
+      "done",
+      "running",
+      "pending",
+      "pending",
+      "pending",
+      "pending"
+    ]
+  },
+  {
+    "name": "an agent that asks a question",
+    "facts": {
+      "clientReview": true,
+      "agentActivity": "needs_input",
+      "previewLive": true,
+      "shared": false,
+      "newFeedback": 0,
+      "gate": {
+        "state": "none"
+      },
+      "deployment": {
+        "state": "none"
+      }
+    },
+    "status": "needs_you",
+    "stages": [
+      "done",
+      "done",
+      "running",
+      "pending",
+      "pending",
+      "pending",
+      "pending"
+    ]
+  },
+  {
+    "name": "an idle agent with a live preview",
+    "facts": {
+      "clientReview": true,
+      "agentActivity": "idle",
+      "previewLive": true,
+      "shared": false,
+      "newFeedback": 0,
+      "gate": {
+        "state": "none"
+      },
+      "deployment": {
+        "state": "none"
+      }
+    },
+    "status": "preview_live",
+    "stages": [
+      "done",
+      "done",
+      "running",
+      "pending",
+      "pending",
+      "pending",
+      "pending"
+    ]
+  },
+  {
+    "name": "the preview link was shared",
+    "facts": {
+      "clientReview": true,
+      "agentActivity": "idle",
+      "previewLive": true,
+      "shared": true,
+      "newFeedback": 0,
+      "gate": {
+        "state": "none"
+      },
+      "deployment": {
+        "state": "none"
+      }
+    },
+    "status": "waiting_on_client",
+    "stages": [
+      "done",
+      "done",
+      "done",
+      "running",
+      "pending",
+      "pending",
+      "pending"
+    ]
+  },
+  {
+    "name": "the client left comments",
+    "facts": {
+      "clientReview": true,
+      "agentActivity": "idle",
+      "previewLive": true,
+      "shared": true,
+      "newFeedback": 2,
+      "gate": {
+        "state": "none"
+      },
+      "deployment": {
+        "state": "none"
+      }
+    },
+    "status": "client_feedback",
+    "stages": [
+      "done",
+      "done",
+      "done",
+      "running",
+      "pending",
+      "pending",
+      "pending"
+    ]
+  },
+  {
+    "name": "an internal project skips the client stage",
+    "facts": {
+      "clientReview": false,
+      "agentActivity": "idle",
+      "previewLive": true,
+      "shared": true,
+      "newFeedback": 0,
+      "gate": {
+        "state": "none"
+      },
+      "deployment": {
+        "state": "none"
+      }
+    },
+    "status": "waiting_on_client",
+    "stages": [
+      "done",
+      "done",
+      "running",
+      "skipped",
+      "pending",
+      "pending",
+      "pending"
+    ]
+  },
+  {
+    "name": "a failed gate",
+    "facts": {
+      "clientReview": true,
+      "agentActivity": "idle",
+      "previewLive": true,
+      "shared": false,
+      "newFeedback": 0,
+      "gate": {
+        "state": "failed",
+        "cause": "2 tests failing"
+      },
+      "deployment": {
+        "state": "none"
+      }
+    },
+    "status": "gate_failed",
+    "stages": [
+      "done",
+      "done",
+      "done",
+      "done",
+      "failed",
+      "pending",
+      "pending"
+    ]
+  },
+  {
+    "name": "a failed gate in an internal project",
+    "facts": {
+      "clientReview": false,
+      "agentActivity": "idle",
+      "previewLive": false,
+      "shared": false,
+      "newFeedback": 0,
+      "gate": {
+        "state": "failed",
+        "cause": "2 tests failing"
+      },
+      "deployment": {
+        "state": "none"
+      }
+    },
+    "status": "gate_failed",
+    "stages": [
+      "done",
+      "done",
+      "done",
+      "skipped",
+      "failed",
+      "pending",
+      "pending"
+    ]
+  },
+  {
+    "name": "a passed gate waits for approval",
+    "facts": {
+      "clientReview": true,
+      "agentActivity": "idle",
+      "previewLive": true,
+      "shared": false,
+      "newFeedback": 0,
+      "gate": {
+        "state": "passed"
+      },
+      "deployment": {
+        "state": "none"
+      }
+    },
+    "status": "ready_to_ship",
+    "stages": [
+      "done",
+      "done",
+      "done",
+      "done",
+      "done",
+      "pending",
+      "pending"
+    ]
+  },
+  {
+    "name": "a running agent outranks an old failed gate",
+    "facts": {
+      "clientReview": true,
+      "agentActivity": "working",
+      "previewLive": false,
+      "shared": false,
+      "newFeedback": 0,
+      "gate": {
+        "state": "failed",
+        "cause": "2 tests failing"
+      },
+      "deployment": {
+        "state": "none"
+      }
+    },
+    "status": "working",
+    "stages": [
+      "done",
+      "done",
+      "done",
+      "done",
+      "failed",
+      "pending",
+      "pending"
+    ]
+  },
+  {
+    "name": "a question outranks a passed gate",
+    "facts": {
+      "clientReview": true,
+      "agentActivity": "needs_input",
+      "previewLive": false,
+      "shared": false,
+      "newFeedback": 0,
+      "gate": {
+        "state": "passed"
+      },
+      "deployment": {
+        "state": "none"
+      }
+    },
+    "status": "needs_you",
+    "stages": [
+      "done",
+      "done",
+      "done",
+      "done",
+      "done",
+      "pending",
+      "pending"
+    ]
+  },
+  {
+    "name": "a deployment in progress",
+    "facts": {
+      "clientReview": true,
+      "agentActivity": "idle",
+      "previewLive": false,
+      "shared": false,
+      "newFeedback": 0,
+      "gate": {
+        "state": "passed"
+      },
+      "deployment": {
+        "state": "shipping"
+      }
+    },
+    "status": "shipping",
+    "stages": [
+      "done",
+      "done",
+      "done",
+      "done",
+      "done",
+      "running",
+      "pending"
+    ]
+  },
+  {
+    "name": "inside the watch window",
+    "facts": {
+      "clientReview": true,
+      "agentActivity": "idle",
+      "previewLive": false,
+      "shared": false,
+      "newFeedback": 0,
+      "gate": {
+        "state": "passed"
+      },
+      "deployment": {
+        "state": "watching"
+      }
+    },
+    "status": "live",
+    "stages": [
+      "done",
+      "done",
+      "done",
+      "done",
+      "done",
+      "done",
+      "running"
+    ]
+  },
+  {
+    "name": "live and past the watch window",
+    "facts": {
+      "clientReview": true,
+      "agentActivity": "idle",
+      "previewLive": false,
+      "shared": false,
+      "newFeedback": 0,
+      "gate": {
+        "state": "passed"
+      },
+      "deployment": {
+        "state": "live"
+      }
+    },
+    "status": "live",
+    "stages": [
+      "done",
+      "done",
+      "done",
+      "done",
+      "done",
+      "done",
+      "done"
+    ]
+  },
+  {
+    "name": "live outranks new client feedback",
+    "facts": {
+      "clientReview": true,
+      "agentActivity": "idle",
+      "previewLive": false,
+      "shared": true,
+      "newFeedback": 1,
+      "gate": {
+        "state": "none"
+      },
+      "deployment": {
+        "state": "live"
+      }
+    },
+    "status": "live",
+    "stages": [
+      "done",
+      "done",
+      "done",
+      "done",
+      "done",
+      "done",
+      "done"
+    ]
+  },
+  {
+    "name": "an automatic rollback",
+    "facts": {
+      "clientReview": true,
+      "agentActivity": "idle",
+      "previewLive": false,
+      "shared": false,
+      "newFeedback": 0,
+      "gate": {
+        "state": "passed"
+      },
+      "deployment": {
+        "state": "rolled_back",
+        "reason": "error rate 4.1% within 3 min of deploy"
+      }
+    },
+    "status": "rolled_back",
+    "stages": [
+      "done",
+      "done",
+      "done",
+      "done",
+      "done",
+      "done",
+      "failed"
+    ]
+  }
+]
