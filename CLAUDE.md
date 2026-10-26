@@ -14,7 +14,7 @@ Pemilik produk dan QA: Maulana Alfara Salim. Implementasi: Claude Code.
 | `docs/git-rules.md` | Aturan commit, branch, PR (dimuat di bawah) | Selalu |
 | `docs/go-rules.md` (lengkap: `docs/research/go-code-rules.md`) | Lapisan package, aturan kode Go, anggaran, `make check` (dimuat di bawah) | Sebelum menulis kode Go |
 | `docs/monorepo.md` | Tiga modul Go (root, `desktop/`, `tools/`) dan `web/`, `replace` desktop, `go.work`, pemeriksaan per modul | Sebelum menyentuh `desktop/`, `tools/`, atau `go.mod` mana pun |
-| `docs/adr/` | Keputusan arsitektur: 0001 frontend, 0002 toolchain Go, 0003 spike S1 (sesi PTY) | Saat keputusan terkait berubah |
+| `docs/adr/` | Keputusan arsitektur: 0001 frontend, 0002 toolchain Go, 0003 spike S1 (sesi PTY), 0004 spike S2 (event dari transcript) | Saat keputusan terkait berubah |
 
 Urutan prioritas saat bertentangan: permintaan eksplisit pemilik produk → `DESIGN_RULES.md` → `DESIGN_SYSTEM.md` → default skill.
 
