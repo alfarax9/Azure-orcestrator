@@ -32,7 +32,7 @@ Urutan prioritas saat bertentangan: permintaan eksplisit pemilik produk → `DES
 
 ## Nama
 
-Desktop app `Astra`, CLI `astra`, daemon `astrad`, service `astrad.service`, config project `astra.yaml`.
+Desktop app `Astra`, CLI `astra`, daemon `astrad`, helper root `astra-priv`, service `astrad.service`, config project `astra.yaml`.
 
 ## Stack yang sudah diputuskan
 
