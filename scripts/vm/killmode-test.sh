@@ -8,8 +8,11 @@
 # Run on a host prepared by setup-isolation.sh, as a user that may sudo.
 set -uo pipefail
 
+WS=${1:-acme}
+AGENT=astra-agent-$WS
+BASE=/var/lib/astra/agents/$WS
 ASTRAD=/usr/local/bin/astrad
-SESSIONS=/var/lib/astra/sessions
+SESSIONS=$BASE/sessions
 UNIT=astrad-ks
 fail=0
 
@@ -42,7 +45,7 @@ EOF
   sudo -n systemctl daemon-reload
 }
 
-START_IN_UNIT="env ASTRA_SESSIONS_DIR=$SESSIONS $ASTRAD session start ks1 -user astra-agent -dir /var/lib/astra/work -- /bin/sleep 3600"
+START_IN_UNIT="env ASTRA_SESSIONS_DIR=$SESSIONS $ASTRAD session start ks1 -user $AGENT -dir $BASE/work -- /bin/sleep 3600"
 
 report() { # $1 = label
   local pid cg
@@ -82,15 +85,15 @@ echo 'astrad ALL=(root) NOPASSWD: /usr/bin/systemd-run' | sudo -n tee /etc/sudoe
 sudo -n chmod 0440 /etc/sudoers.d/astrad-ks
 sudo -n systemctl start $UNIT; sleep 1
 sudo -n -u astrad sudo -n systemd-run --quiet --unit=astra-s-ks1 --slice=astra-agents.slice \
-  --uid=astra-agent --gid=astra-agent --working-directory=/var/lib/astra/work \
+  --uid=$AGENT --gid=$AGENT --working-directory=$BASE/work \
   --property=MemoryMax=512M --property=CPUQuota=100% --property=TasksMax=256 \
-  --setenv=HOME=/var/lib/astra/agent-home --setenv=TERM=xterm-256color \
-  "$ASTRAD" session-host --socket "$SESSIONS/ks1.sock" --socket-mode 660 --dir /var/lib/astra/work -- /bin/sleep 3600
+  --setenv=HOME=$BASE/home --setenv=TERM=xterm-256color \
+  "$ASTRAD" session-host --socket "$SESSIONS/ks1.sock" --socket-mode 660 --dir $BASE/work -- /bin/sleep 3600
 sleep 2
 report "after start"
 FIRST=$(host_pid)
 echo "  limits: $(systemctl show astra-s-ks1 -p MemoryMax -p CPUQuotaPerSecUSec -p TasksMax -p Slice | tr '\n' ' ')"
-echo "  agent env keys: $(sudo -n cat /proc/"$(pgrep -u astra-agent -x sleep | head -1)"/environ | tr '\0' '\n' | cut -d= -f1 | tr '\n' ' ')"
+echo "  agent env keys: $(sudo -n cat /proc/"$(pgrep -u "$AGENT" -x sleep | head -1)"/environ | tr '\0' '\n' | cut -d= -f1 | tr '\n' ' ')"
 sudo -n systemctl restart $UNIT; sleep 2
 report "after daemon restart"
 D_RESTART=$(still_running "$FIRST" && echo yes || echo no)
