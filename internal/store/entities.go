@@ -48,25 +48,37 @@ func (s *Store) Workspaces(ctx context.Context) ([]domain.Workspace, error) {
 
 // CreateProject stores p. An unknown workspace or a repeated name gives domain.ErrConflict.
 func (s *Store) CreateProject(ctx context.Context, p domain.Project) error {
-	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO projects (id, workspace_id, name, repo_url, default_branch, dev_cmd, build_cmd, test_cmd, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		p.ID, p.WorkspaceID, p.Name, p.RepoURL, p.DefaultBranch,
+	_, err := s.db.ExecContext(ctx, `INSERT INTO projects (`+projectColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		p.ID, p.WorkspaceID, p.Name, p.RepoURL, p.DefaultBranch, p.Stack,
 		p.Commands.Dev, p.Commands.Build, p.Commands.Test, p.CreatedAt.UnixMilli())
 	return wrap("create project "+p.Name, err)
 }
 
-const projectColumns = `id, workspace_id, name, repo_url, default_branch, dev_cmd, build_cmd, test_cmd, created_at`
+const projectColumns = `id, workspace_id, name, repo_url, default_branch, stack, dev_cmd, build_cmd, test_cmd, created_at`
 
 type scanner interface{ Scan(dest ...any) error }
 
 func scanProject(r scanner) (domain.Project, error) {
 	var p domain.Project
 	var created int64
-	err := r.Scan(&p.ID, &p.WorkspaceID, &p.Name, &p.RepoURL, &p.DefaultBranch,
+	err := r.Scan(&p.ID, &p.WorkspaceID, &p.Name, &p.RepoURL, &p.DefaultBranch, &p.Stack,
 		&p.Commands.Dev, &p.Commands.Build, &p.Commands.Test, &created)
 	p.CreatedAt = domain.Timestamp{Time: time.UnixMilli(created)}
 	return p, err
+}
+
+// SetCommands replaces the dev, build and test commands of a project; the user corrects
+// what detection found (F2-03).
+func (s *Store) SetCommands(ctx context.Context, id domain.ProjectID, c domain.Commands) error {
+	res, err := s.db.ExecContext(ctx, `UPDATE projects SET dev_cmd = ?, build_cmd = ?, test_cmd = ? WHERE id = ?`,
+		c.Dev, c.Build, c.Test, id)
+	if err != nil {
+		return wrap("set commands of project "+string(id), err)
+	}
+	if n, err := res.RowsAffected(); err != nil || n == 0 {
+		return fmt.Errorf("set commands of project %s: %w", id, domain.ErrNotFound)
+	}
+	return nil
 }
 
 // Project returns the project with the given id.
