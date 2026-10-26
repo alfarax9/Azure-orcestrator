@@ -96,8 +96,8 @@ Temuan dari uji ini:
 ## Belum terbukti (syarat menutup S1)
 
 1. **VPS Linux.** Kriteria F3-02 adalah 5 sesi paralel stabil selama 2 jam, dan N-07 menuntut 100% sesi tersambung kembali setelah restart atau update daemon. Keduanya diuji di Ubuntu 24.04.
-2. **systemd.** Dengan `KillMode=control-group` (default), `systemctl stop/restart astrad` ikut membunuh semua proses di cgroup daemon, termasuk host. Unit `astrad.service` perlu `KillMode=process`, atau host dijalankan di scope sendiri (`systemd-run --scope`). Keputusan diambil saat uji di VPS.
-3. **Isolasi user (S3).** Agent harus berjalan sebagai user Linux terpisah (F12-01). Spawner perlu `SysProcAttr.Credential` atau `sudo -u`; itu bagian spike S3.
+2. **systemd.** Diuji di VM (ADR 0005): `KillMode` bawaan membunuh sesi saat daemon di-restart; `KillMode=process` menyelamatkannya; sesi sebagai unit transient per sesi (`systemd-run`) selamat dan mendapat batas resource. Yang dipilih untuk M1 adalah unit transient. Tersisa: uji di VPS fisik.
+3. **Isolasi user (S3).** Terbukti di VM (ADR 0005): spawner menjalankan agent lewat `sudo -u` dengan environment bersih (`Spec.User`), 12 dari 12 serangan ditolak. Tersisa: keputusan isolasi antar-worker dan hak pembuatan unit.
 4. **Versi protokol.** Host yang berjalan bisa lebih tua dari daemon setelah update. Frame `attach` sebaiknya membawa versi protokol sebelum M1 (N-16).
 5. **Ketikan < 100 ms (N-01)** diukur bersama terminal web di M1.
 
