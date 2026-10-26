@@ -207,6 +207,51 @@ func TestExitCodeReachesALateDaemon(t *testing.T) {
 	}
 }
 
+func TestLaunchCommandForAnotherUserResetsTheEnvironment(t *testing.T) {
+	t.Setenv("ASTRA_TEST_DAEMON_SECRET", "must-not-leak")
+	sp := Spawner{SocketDir: "/s", Executable: "/usr/local/bin/astrad", Scrollback: 1024, Linger: time.Minute}
+	spec := Spec{ID: "a", User: "astra-agent", Argv: []string{"claude", "--flag"}, Dir: "/w", Env: []string{"HOME=/h", "TERM=x"}, Rows: 24, Cols: 80}
+	cmd, err := sp.launchCommand(t.Context(), spec, "/s/a.sock")
+	if err != nil {
+		t.Fatal(err)
+	}
+	line := strings.Join(cmd.Args, " ")
+	for _, want := range []string{
+		"sudo -n -u astra-agent -- /usr/bin/env -i HOME=/h TERM=x /usr/local/bin/astrad session-host --detach",
+		"--socket /s/a.sock", "--socket-mode 660", "-- claude --flag",
+	} {
+		if !strings.Contains(line, want) {
+			t.Errorf("command line lacks %q:\n%s", want, line)
+		}
+	}
+	if strings.Contains(strings.Join(cmd.Env, " "), "must-not-leak") || len(cmd.Env) != 1 {
+		t.Errorf("sudo itself must start with a minimal environment, got %v", cmd.Env)
+	}
+}
+
+func TestLaunchCommandForTheSameUserRunsTheHostDirectly(t *testing.T) {
+	sp := Spawner{SocketDir: "/s", Executable: "/usr/local/bin/astrad", Scrollback: 1024, Linger: time.Minute}
+	cmd, err := sp.launchCommand(t.Context(), Spec{ID: "a", Argv: []string{"sh"}, Env: []string{"A=b"}}, "/s/a.sock")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cmd.Args[0] != "/usr/local/bin/astrad" || strings.Contains(strings.Join(cmd.Args, " "), "socket-mode") {
+		t.Fatalf("unexpected command: %v", cmd.Args)
+	}
+	if len(cmd.Env) != 1 || cmd.Env[0] != "A=b" {
+		t.Fatalf("the agent must get exactly its spec environment, got %v", cmd.Env)
+	}
+}
+
+func TestLaunchCommandRejectsUserNamesThatCouldInjectArguments(t *testing.T) {
+	sp := Spawner{SocketDir: "/s", Executable: "/usr/local/bin/astrad"}
+	for _, name := range []string{"root;id", "-u", "A", "../x", "a b", strings.Repeat("a", 33)} {
+		if _, err := sp.launchCommand(t.Context(), Spec{ID: "a", User: name, Argv: []string{"sh"}}, "/s/a.sock"); err == nil {
+			t.Errorf("user %q should be rejected", name)
+		}
+	}
+}
+
 func TestStartRejectsUnsafeIDs(t *testing.T) {
 	sp := spawner(t)
 	for _, id := range []string{"", "../x", "A", strings.Repeat("a", 41)} {
