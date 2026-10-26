@@ -15,7 +15,8 @@ Ringkasan dari `docs/research/go-code-rules.md`. Bila ragu, dokumen lengkap dan 
 | Protokol | `cmd/astrad`, `cmd/astra`, `internal/api` | Capability, domain; `cmd/astrad` juga infrastruktur untuk merakit |
 | Capability | `agent`, `workspace`, `preview`, `feedback`, `gate`, `deploy`, `watch`, `server` | Domain, stdlib; capability lain hanya lewat ADR |
 | Domain | `domain` | Stdlib saja |
-| Infrastruktur (daun) | `store`, `proxy`, `pty`, `agentcli`, `docker`, `dns`, `remote` | Domain, stdlib, dependensi yang disetujui |
+| Infrastruktur (daun) | `store`, `proxy`, `pty`, `asuser`, `agentcli`, `docker`, `dns`, `remote` | Domain, stdlib, dependensi yang disetujui |
+| Helper root | `priv` (hanya dipakai `cmd/astra-priv`, ADR 0005) | Domain, stdlib |
 
 - Capability tidak mengimpor infrastruktur. Capability mendefinisikan interface kecil (1–3 method) yang dibutuhkannya; infrastruktur mengimplementasinya; `cmd/astrad` menyambungkan.
 - Constructor mengembalikan tipe konkret. Interface hanya untuk batas ke sistem luar yang perlu di-fake (Docker, SSH, DNS, CLI agent, waktu).
