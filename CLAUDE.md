@@ -14,6 +14,7 @@ Pemilik produk dan QA: Maulana Alfara Salim. Implementasi: Claude Code.
 | `docs/git-rules.md` | Aturan commit, branch, PR (dimuat di bawah) | Selalu |
 | `docs/go-rules.md` (lengkap: `docs/research/go-code-rules.md`) | Lapisan package, aturan kode Go, anggaran, `make check` (dimuat di bawah) | Sebelum menulis kode Go |
 | `docs/vm-testing.md` | Membuat dan memakai VM Linux di Mac untuk uji yang butuh Linux (`scripts/vm/`) | Sebelum menjalankan uji S3, systemd, atau cgroups |
+| `docs/m1-plan.md` | Potongan kerja M1, requirement-nya, dan keputusan yang masih terbuka | Sebelum mengerjakan potongan M1 berikutnya |
 | `docs/monorepo.md` | Tiga modul Go (root, `desktop/`, `tools/`) dan `web/`, `replace` desktop, `go.work`, pemeriksaan per modul | Sebelum menyentuh `desktop/`, `tools/`, atau `go.mod` mana pun |
 | `docs/adr/` | Keputusan arsitektur: 0001 frontend, 0002 toolchain Go, 0003 spike S1 (sesi PTY), 0004 spike S2 (event dari transcript), 0005 spike S3 dan systemd (isolasi agent, umur sesi) | Saat keputusan terkait berubah |
 
