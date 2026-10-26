@@ -6,6 +6,9 @@ import "regexp"
 // (astra-agent-<slug>, at most 31 characters) and as a folder name (docs/adr/0005).
 var slugPattern = regexp.MustCompile(`^[a-z][a-z0-9-]{0,18}[a-z0-9]$`)
 
+// projectNamePattern keeps a project name usable as a folder name in the workspace.
+var projectNamePattern = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,62}$`)
+
 // Workspace is one client's space: its projects, domains and agent user (F2-01).
 type Workspace struct {
 	ID        WorkspaceID `json:"id"`
@@ -35,6 +38,11 @@ type Project struct {
 	Name          string      `json:"name"`
 	RepoURL       string      `json:"repoUrl,omitzero"`
 	DefaultBranch string      `json:"defaultBranch"`
+	Stack         string      `json:"stack,omitzero"` // detected kind of app, such as "nextjs" (F2-03)
 	Commands      Commands    `json:"commands"`
 	CreatedAt     Timestamp   `json:"createdAt"`
 }
+
+// ValidProjectName reports whether s may name a project: lowercase letters, digits, dots,
+// hyphens and underscores, starting with a letter or digit.
+func ValidProjectName(s string) bool { return projectNamePattern.MatchString(s) }
