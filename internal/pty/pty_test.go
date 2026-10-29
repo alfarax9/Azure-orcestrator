@@ -17,7 +17,7 @@ import (
 // The test binary doubles as the session host, as astrad does in production.
 func TestMain(m *testing.M) {
 	if len(os.Args) > 1 && os.Args[1] == HostCommand {
-		os.Exit(HostMain(os.Args[2:], os.Environ()))
+		os.Exit(HostMainWith(os.Args[2:], os.Environ(), testFollowers))
 	}
 	os.Exit(m.Run())
 }
@@ -272,7 +272,7 @@ func TestServeLeavesNoGoroutinesBehind(t *testing.T) {
 	}
 	served := make(chan error, 1)
 	go func() { served <- Serve(ctx, cfg) }()
-	if err := waitReady(ctx, sock); err != nil {
+	if err := WaitReady(ctx, sock); err != nil {
 		t.Fatal(err)
 	}
 	c, err := Dial(ctx, sock)
@@ -312,7 +312,7 @@ func TestHostStopsWhenItsSocketIsRemoved(t *testing.T) {
 	}
 	served := make(chan error, 1)
 	go func() { served <- Serve(t.Context(), cfg) }()
-	if err := waitReady(t.Context(), sock); err != nil {
+	if err := WaitReady(t.Context(), sock); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.Remove(sock); err != nil {
