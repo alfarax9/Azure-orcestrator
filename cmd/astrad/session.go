@@ -8,11 +8,11 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/alfarax9/astra/internal/agent"
 	"github.com/alfarax9/astra/internal/pty"
 )
 
@@ -136,9 +136,6 @@ func sessionList(ctx context.Context, sp pty.Spawner, _ []string) error {
 	return err
 }
 
-// ansi matches terminal escape sequences, so -strip prints a TUI's text only.
-var ansi = regexp.MustCompile(`\x1b\[[0-9;?<>=]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(\x07|\x1b\\)|\x1b[()][0-9A-Za-z]|\x1b[=>78]`)
-
 func sessionTail(ctx context.Context, sp pty.Spawner, args []string) error {
 	if len(args) == 0 {
 		return errors.New(sessionUsage)
@@ -162,7 +159,7 @@ func sessionTail(ctx context.Context, sp pty.Spawner, args []string) error {
 		}
 		out := ev.Output
 		if *strip {
-			out = ansi.ReplaceAll(out, nil)
+			out = agent.StripANSI(out)
 		}
 		_, _ = os.Stdout.Write(out)
 		if ev.Exited {
