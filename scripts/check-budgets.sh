@@ -49,7 +49,7 @@ if git grep --untracked -nE '//[[:space:]]*TODO' -- '*.go' | grep -vE 'TODO\(#[0
 fi
 
 # 6. Coverage per capability and domain package: >= 70%.
-caps=(agent workspace preview feedback gate deploy watch server domain)
+caps=(agent workspace preview feedback gate deploy watch server auth checklist domain)
 for p in "${caps[@]}"; do
   if [[ ! -d "internal/$p" ]]; then continue; fi
   pct=$(go test -cover "./internal/$p/..." 2>/dev/null \
