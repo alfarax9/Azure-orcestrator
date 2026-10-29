@@ -12,7 +12,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/alfarax9/astra/internal/agent"
 	"github.com/alfarax9/astra/internal/asuser"
+	"github.com/alfarax9/astra/internal/auth"
+	"github.com/alfarax9/astra/internal/checklist"
 	"github.com/alfarax9/astra/internal/domain"
 	"github.com/alfarax9/astra/internal/store"
 	"github.com/alfarax9/astra/internal/workspace"
@@ -23,6 +26,9 @@ const workspaceUsage = `usage:
   astrad project add <slug> <name> [repo-url]
   astrad project commands <project-id> [-dev CMD] [-build CMD] [-test CMD]
   astrad worker new <project-id> <title> [-agent claude|codex] [-internal]
+  astrad worker start|stop|interrupt|show|watch <worker-id>
+  astrad worker send <worker-id> <message>
+  astrad worker press <worker-id> <keys>    (Go escapes allowed: \r for Enter)
 the database is $ASTRA_DB (default ~/.astrad/astra.db). ASTRA_LOCAL=1 runs without agent
 users, under $ASTRA_AGENTS_DIR (default ~/.astrad/agents; on a server /var/lib/astra/agents)`
 
@@ -35,24 +41,24 @@ func runObjects(kind string, args []string) int {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	st, svc, err := openWorkspaces(ctx)
+	a, err := open(ctx)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "astrad:", err)
 		return 1
 	}
-	defer func() { _ = st.Close() }()
+	defer func() { _ = a.store.Close() }()
 	var out any
 	switch kind + " " + args[0] {
 	case "workspace add":
-		out, err = need(args, 3, func() (any, error) { return svc.AddWorkspace(ctx, args[1], args[2]) })
+		out, err = need(args, 3, func() (any, error) { return a.ws.AddWorkspace(ctx, args[1], args[2]) })
 	case "project add":
-		out, err = need(args, 3, func() (any, error) { return svc.AddProject(ctx, args[1], args[2], optional(args, 3)) })
+		out, err = need(args, 3, func() (any, error) { return a.ws.AddProject(ctx, args[1], args[2], optional(args, 3)) })
 	case "project commands":
-		out, err = setCommands(ctx, st, svc, args[1:])
+		out, err = setCommands(ctx, a, args[1:])
 	case "worker new":
-		out, err = newWorker(ctx, svc, args[1:])
+		out, err = newWorker(ctx, a.ws, args[1:])
 	default:
-		err = errUsage
+		out, err = agentCommand(ctx, a, kind+" "+args[0], args[1:])
 	}
 	return report(out, err)
 }
@@ -91,18 +97,27 @@ func optional(args []string, i int) string {
 	return ""
 }
 
-func openWorkspaces(ctx context.Context) (*store.Store, *workspace.Service, error) {
+// app is the services the commands use, wired to the store and the machine.
+type app struct {
+	store *store.Store
+	ws    *workspace.Service
+	ag    *agent.Service
+	auth  *auth.Service
+	list  *checklist.Service
+}
+
+func open(ctx context.Context) (app, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return nil, nil, fmt.Errorf("find home directory: %w", err)
+		return app{}, fmt.Errorf("find home directory: %w", err)
 	}
 	dbPath := envOr("ASTRA_DB", filepath.Join(home, ".astrad", "astra.db"))
 	if err := os.MkdirAll(filepath.Dir(dbPath), 0o700); err != nil {
-		return nil, nil, fmt.Errorf("create database folder: %w", err)
+		return app{}, fmt.Errorf("create database folder: %w", err)
 	}
 	st, err := store.Open(ctx, dbPath)
 	if err != nil {
-		return nil, nil, err
+		return app{}, err
 	}
 	local := os.Getenv("ASTRA_LOCAL") == "1"
 	agents := "/var/lib/astra/agents"
@@ -114,7 +129,8 @@ func openWorkspaces(ctx context.Context) (*store.Store, *workspace.Service, erro
 		Helper: envOr("ASTRA_PRIV", "/usr/libexec/astra/astra-priv"),
 		Local:  local,
 	}
-	return st, workspace.New(run, run, st, st, st, time.Now), nil
+	ws := workspace.New(run, run, st, st, st, time.Now)
+	return app{store: st, ws: ws, ag: agent.New(sessionHost{run: run}, st, ws, time.Now), auth: auth.New(st, st, time.Now), list: checklist.New(st, run)}, nil
 }
 
 func envOr(key, fallback string) string {
@@ -125,12 +141,12 @@ func envOr(key, fallback string) string {
 }
 
 // setCommands changes only the commands given as flags and keeps the others.
-func setCommands(ctx context.Context, st *store.Store, svc *workspace.Service, args []string) (any, error) {
+func setCommands(ctx context.Context, a app, args []string) (any, error) {
 	if len(args) == 0 {
 		return nil, errUsage
 	}
 	id := domain.ProjectID(args[0])
-	p, err := st.Project(ctx, id)
+	p, err := a.store.Project(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +158,7 @@ func setCommands(ctx context.Context, st *store.Store, svc *workspace.Service, a
 	if err := fs.Parse(args[1:]); err != nil || fs.NArg() > 0 {
 		return nil, errUsage
 	}
-	if err := svc.SetCommands(ctx, id, c); err != nil {
+	if err := a.ws.SetCommands(ctx, id, c); err != nil {
 		return nil, err
 	}
 	p.Commands = c
