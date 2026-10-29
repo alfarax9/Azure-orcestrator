@@ -15,7 +15,8 @@ const usage = `usage: astra-priv <verb> ...
   workspace-add <slug>
   session-start <slug> <id> --agent claude|codex|shell [--dir REL] [--rows N] [--cols N]
                 [--memory-max MB] [--cpu-quota PERCENT]
-  session-stop  <slug> <id>`
+  session-stop  <slug> <id>
+  agent-status  <slug>`
 
 // Dir is a folder the helper creates or repairs.
 type Dir struct {
@@ -41,6 +42,8 @@ type Host interface {
 	Install(d Dir) error
 	// WriteSudoers checks content with visudo and only then makes it a live sudoers file.
 	WriteSudoers(ctx context.Context, dir, name, content string) error
+	// FileExists reports whether something is at path, without following a link there.
+	FileExists(path string) bool
 	// ResolveDir returns the real path of root/rel, which must be a folder inside root.
 	ResolveDir(root, rel string) (string, error)
 }
@@ -64,6 +67,8 @@ func (h Helper) Run(ctx context.Context, args []string, out io.Writer) error {
 		return h.sessionStart(ctx, args[1:], out)
 	case "session-stop":
 		return h.sessionStop(ctx, args[1:])
+	case "agent-status":
+		return h.agentStatus(args[1:], out)
 	}
 	return fmt.Errorf("%w: unknown verb %q\n%s", ErrUsage, args[0], usage)
 }
