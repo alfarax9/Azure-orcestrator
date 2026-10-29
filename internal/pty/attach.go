@@ -74,6 +74,9 @@ func (h *host) attach(c net.Conn) {
 	h.mu.Lock()
 	h.attached[c] = struct{}{}
 	ok := h.send(c, frameOutput, h.history.snapshot())
+	for _, record := range h.events {
+		ok = ok && h.send(c, frameEvent, record)
+	}
 	exited := h.exited
 	if exited && ok {
 		h.sendExit(c)
