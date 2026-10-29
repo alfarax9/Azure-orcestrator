@@ -15,9 +15,11 @@ type Conn struct {
 	mu   sync.Mutex // serialises writes from several callers
 }
 
-// Event is one thing the session reports: output the agent wrote, or its exit.
+// Event is one thing the session reports: output the agent wrote, a record from the host's
+// event source, or the agent's exit.
 type Event struct {
 	Output   []byte
+	Record   []byte
 	Exited   bool
 	ExitCode int
 }
@@ -65,6 +67,8 @@ func (c *Conn) Next() (Event, error) {
 		switch kind {
 		case frameOutput:
 			return Event{Output: p}, nil
+		case frameEvent:
+			return Event{Record: p}, nil
 		case frameExit:
 			if len(p) == 4 {
 				return Event{Exited: true, ExitCode: int(int32(binary.BigEndian.Uint32(p)))}, nil //nolint:gosec // int32 sent by the host
