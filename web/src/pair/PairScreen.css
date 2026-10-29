@@ -1,0 +1,34 @@
+.pair {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: var(--space-4);
+  outline: none;
+}
+
+.pair-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: min(440px, 100%);
+}
+
+.pair-help,
+.pair-notice {
+  margin: 0;
+  color: var(--muted);
+}
+
+.pair-notice {
+  color: var(--text);
+}
+
+.pair-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.pair-form .button-primary {
+  align-self: flex-start;
+}
