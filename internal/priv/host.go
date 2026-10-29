@@ -128,6 +128,12 @@ func (h SystemHost) WriteSudoers(ctx context.Context, dir, name, content string)
 	return os.Rename(tmp, filepath.Join(dir, name))
 }
 
+// FileExists reports whether something is at path, without following a link there.
+func (SystemHost) FileExists(path string) bool {
+	_, err := os.Lstat(path)
+	return err == nil
+}
+
 // ResolveDir returns the real path of root/rel after following links, and refuses anything
 // that is not a folder inside root.
 func (SystemHost) ResolveDir(root, rel string) (string, error) {
