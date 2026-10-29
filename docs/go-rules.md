@@ -13,9 +13,9 @@ Ringkasan dari `docs/research/go-code-rules.md`. Bila ragu, dokumen lengkap dan 
 | Lapis | Package | Boleh mengimpor |
 | --- | --- | --- |
 | Protokol | `cmd/astrad`, `cmd/astra`, `internal/api` | Capability, domain; `cmd/astrad` juga infrastruktur untuk merakit |
-| Capability | `agent`, `workspace`, `preview`, `feedback`, `gate`, `deploy`, `watch`, `server` | Domain, stdlib; capability lain hanya lewat ADR |
+| Capability | `agent`, `auth`, `checklist`, `workspace`, `preview`, `feedback`, `gate`, `deploy`, `watch`, `server` | Domain, stdlib; capability lain hanya lewat ADR |
 | Domain | `domain` | Stdlib saja |
-| Infrastruktur (daun) | `store`, `proxy`, `pty`, `asuser`, `agentcli`, `docker`, `dns`, `remote` | Domain, stdlib, dependensi yang disetujui |
+| Infrastruktur (daun) | `store`, `proxy`, `pty`, `asuser`, `agentcli`, `docker`, `dns`, `remote` (SSH; hanya dipakai `cmd/astra`) | Domain, stdlib, dependensi yang disetujui |
 | Helper root | `priv` (hanya dipakai `cmd/astra-priv`, ADR 0005) | Domain, stdlib |
 
 - Capability tidak mengimpor infrastruktur. Capability mendefinisikan interface kecil (1–3 method) yang dibutuhkannya; infrastruktur mengimplementasinya; `cmd/astrad` menyambungkan.
@@ -29,6 +29,7 @@ Ringkasan dari `docs/research/go-code-rules.md`. Bila ragu, dokumen lengkap dan 
 - **Konkurensi:** setiap goroutine punya pemilik (`sync.WaitGroup.Go` atau `errgroup`); channel ditutup pengirim; field ber-mutex dikelompokkan di bawah mutex-nya; `pty`, `watch`, `agent` punya test `goroutineleak`; timeout diuji dengan `testing/synctest`, bukan `time.Sleep`.
 - **Logging:** `log/slog` terstruktur lewat constructor; tidak ada `fmt.Print*`/`log.Print*`/`os.Getenv` di `internal/`.
 - **Secret:** tipe `domain.Secret` (`String()` dan `LogValue()` menyembunyikan isi, `Reveal()` eksplisit); tidak pernah ke log, tidak pernah ke proses agent.
+- **WebSocket:** `github.com/coder/websocket` di `internal/api` saja (ADR 0006).
 - **HTTP:** `net/http.ServeMux` dengan pola method dan path, tanpa framework; handler hanya decode, validasi, panggil capability, encode; timeout server eksplisit.
 - **Test:** lewat API publik; table-driven; fake buatan tangan; build tag `integration` untuk Docker, SSH, jaringan nyata; golden file di `testdata/` untuk parser output pihak ketiga.
 - **Penamaan:** package satu kata tanpa `util`/`common`/`helpers`/`misc`/`shared`/`base`; `deploy.Service` bukan `deploy.DeployService`; akronim `URL`, `ID`, `HTTP`, `SSH`, `PTY`; setiap package di `internal/` punya `doc.go`; setiap yang diekspor punya komentar doc; `//nolint` wajib menyebut linter dan alasan.
