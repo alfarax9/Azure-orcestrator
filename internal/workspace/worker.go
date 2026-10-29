@@ -34,12 +34,11 @@ func (s *Service) CreateWorker(ctx context.Context, project domain.ProjectID, ti
 	w.Branch = branchName(title, w.ID)
 	w.Worktree = p.Name + "/workers/" + string(w.ID)
 
-	base := p.DefaultBranch
+	base := s.baseRef(p)
 	if p.RepoURL != "" {
 		if _, err := s.git(ctx, ws.Slug, p.Name, "fetch", "--quiet", "origin", p.DefaultBranch); err != nil {
 			return domain.Worker{}, fmt.Errorf("update %s from origin: %w", p.DefaultBranch, err)
 		}
-		base = "origin/" + p.DefaultBranch
 	}
 	// --no-track: the worker's branch must never push to the default branch by accident.
 	if _, err := s.git(ctx, ws.Slug, p.Name, "worktree", "add", "--quiet", "--no-track", "-b", w.Branch,
