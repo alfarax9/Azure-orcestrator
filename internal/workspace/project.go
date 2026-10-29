@@ -63,6 +63,9 @@ func (s *Service) fetchRepo(ctx context.Context, slug, name, url string) error {
 		cmd = []string{"git", "clone", "--quiet", "--", url, repoDir(name)}
 	}
 	if _, err := s.run.Run(ctx, slug, "", cmd...); err != nil {
+		if url != "" {
+			err = fmt.Errorf("%w: %w", ErrClone, err)
+		}
 		return s.undoRepo(ctx, slug, name, fmt.Errorf("%s %s: %w", cmd[1], url, err))
 	}
 	if _, err := s.git(ctx, slug, name, "rev-parse", "--quiet", "--verify", "HEAD"); err == nil {
