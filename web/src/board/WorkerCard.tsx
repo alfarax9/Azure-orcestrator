@@ -1,9 +1,10 @@
 import { EllipsisVertical, GripVertical } from "lucide-react";
 import { Button, Menu, MenuItem, MenuTrigger, Popover, Tooltip, TooltipTrigger } from "react-aria-components";
 import { currentStageLabel } from "../workers/stages";
-import { STATUS, statusDetail, type WorkerStatus } from "../workers/status";
+import { statusDetail, type WorkerStatus } from "../workers/status";
 import type { Worker } from "../workers/types";
 import { LoopStripMini } from "./LoopStripMini";
+import { StatusMark } from "./StatusMark";
 import type { MoveTarget } from "./move";
 import { useNow } from "./useNow";
 import "./WorkerCard.css";
@@ -13,19 +14,6 @@ function age(createdAt: number, now: number): string {
   if (minutes < 60) return `${minutes}m`;
   if (minutes < 24 * 60) return `${Math.floor(minutes / 60)}h`;
   return `${Math.floor(minutes / (24 * 60))}d`;
-}
-
-function StatusMark({ status }: { status: WorkerStatus }) {
-  const { label, mark } = STATUS[status];
-  if (mark === "pulse-accent" || mark === "dot-positive") {
-    return (
-      <span className="status-dot">
-        <span className={`dot ${mark === "pulse-accent" ? "dot-accent dot-pulse" : "dot-positive"}`} aria-hidden="true" />
-        {label}
-      </span>
-    );
-  }
-  return <span className={`pill ${mark}`}>{label}</span>;
 }
 
 /** Single-click and keyboard alternative to dragging (DESIGN_RULES.md §6). */
