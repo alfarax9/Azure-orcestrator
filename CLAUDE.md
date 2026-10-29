@@ -16,7 +16,7 @@ Pemilik produk dan QA: Maulana Alfara Salim. Implementasi: Claude Code.
 | `docs/vm-testing.md` | Membuat dan memakai VM Linux di Mac untuk uji yang butuh Linux (`scripts/vm/`) | Sebelum menjalankan uji S3, systemd, atau cgroups |
 | `docs/m1-plan.md` | Potongan kerja M1, requirement-nya, dan keputusan yang masih terbuka | Sebelum mengerjakan potongan M1 berikutnya |
 | `docs/monorepo.md` | Tiga modul Go (root, `desktop/`, `tools/`) dan `web/`, `replace` desktop, `go.work`, pemeriksaan per modul | Sebelum menyentuh `desktop/`, `tools/`, atau `go.mod` mana pun |
-| `docs/adr/` | Keputusan arsitektur: 0001 frontend, 0002 toolchain Go, 0003 spike S1 (sesi PTY), 0004 spike S2 (event dari transcript), 0005 spike S3 dan systemd (isolasi agent, umur sesi) | Saat keputusan terkait berubah |
+| `docs/adr/` | Keputusan arsitektur: 0001 frontend, 0002 toolchain Go, 0003 spike S1 (sesi PTY), 0004 spike S2 (event dari transcript), 0005 spike S3 dan systemd (isolasi agent, umur sesi), 0006 API daemon, pairing, dan WebSocket, 0007 onboarding dan pemasangan server | Saat keputusan terkait berubah |
 
 Urutan prioritas saat bertentangan: permintaan eksplisit pemilik produk → `DESIGN_RULES.md` → `DESIGN_SYSTEM.md` → default skill.
 
@@ -32,7 +32,7 @@ Urutan prioritas saat bertentangan: permintaan eksplisit pemilik produk → `DES
 
 ## Nama
 
-Desktop app `Astra`, CLI `astra`, daemon `astrad`, helper root `astra-priv`, service `astrad.service`, config project `astra.yaml`.
+Desktop app `Astra`, CLI `astra` (juga pemasang server), daemon `astrad`, helper root `astra-priv`, service `astrad.service`, config project `astra.yaml`.
 
 ## Stack yang sudah diputuskan
 
@@ -43,7 +43,7 @@ Desktop app `Astra`, CLI `astra`, daemon `astrad`, helper root `astra-priv`, ser
 
 1. Pasang Go 1.27.3 dan golangci-lint 2.15.0 (binary resmi, lihat ADR 0002).
 2. `make setup` sekali, untuk mengaktifkan hook `commit-msg` dan `pre-push` di `.githooks/`.
-3. `npm ci` di `web/`, lalu `npx skills experimental_install` di root untuk memasang taste-skill dari `skills-lock.json`.
+3. `npm ci` di `web/` (dev: `scripts/dev/local-daemon.sh` di satu terminal dan `npm run dev` di `web/` di terminal lain; atau `http://localhost:5173/?sample` tanpa daemon), lalu `npx skills experimental_install` di root untuk memasang taste-skill dari `skills-lock.json`.
 4. Opsional: `go work init . ./desktop ./tools` untuk editor. `go.work` tidak di-commit, dan Makefile selalu memakai `GOWORK=off`.
 
 ## Aturan git
