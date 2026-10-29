@@ -69,8 +69,8 @@ Pada varian D, environment agent hanya berisi `LANG PATH USER LOGNAME HOME SHELL
 ## Temuan dan keputusan terbuka
 
 1. **Isolasi antar-worker: diputuskan, lihat bagian Keputusan isolasi antar-klien di bawah.**
-2. **Daemon tidak boleh membaca home agent.** Transcript untuk S2 ada di `~/.claude/projects` dan `~/.codex/sessions`, satu folder dengan kredensial login agent (F3-03: daemon tidak boleh membaca atau menyalin kredensial). Claude Code membuat file transcript dengan mode `0600`, jadi izin grup atau ACL tidak membantu. **Usul:** pembaca transcript S2 (`internal/agent`) berjalan di dalam session host, yang sudah berjalan sebagai user agent, dan mengirim event ke daemon lewat frame baru di socket yang sama. Daemon tidak pernah membuka file di home agent.
-3. **Umum dan harus dijaga:** (i) `/proc` dipasang tanpa `hidepid`, sehingga agent **melihat argumen** proses user lain (diuji: argumen `--token=…` milik `astrad` terlihat lewat `ps`). Secret tidak boleh pernah dikirim lewat argv, dan pada VPS `/proc` sebaiknya dipasang dengan `hidepid=2`. (ii) Agent punya akses internet penuh (wajar) dan bisa menjangkau layanan di localhost, termasuk API daemon nanti; token pairing tidak boleh ada di environment agent, dan aturan nftables per-UID (`meta skuid`) perlu dipertimbangkan untuk M3. (iii) Alamat metadata cloud 169.254.169.254 tidak terjangkau di VM ini; di VPS tertentu bisa terjangkau dan harus diblokir untuk UID agent.
+2. **Daemon tidak boleh membaca home agent: diputuskan dan dibangun, lihat Hasil potongan 3 di bawah.**
+3. **Umum dan harus dijaga:** (i) `/proc` dipasang tanpa `hidepid`, sehingga agent **melihat argumen** proses user lain (diuji: argumen `--token=…` milik `astrad` terlihat lewat `ps`). Secret tidak boleh pernah dikirim lewat argv. **Diatasi untuk sesi agent (2026-10-29):** unit sesi memakai `ProtectProc=invisible` dan `ProcSubset=pid`, jadi agent hanya melihat proses miliknya sendiri; `hidepid` untuk seluruh host tidak diperlukan. (ii) Agent punya akses internet penuh (wajar) dan bisa menjangkau layanan di localhost, termasuk API daemon nanti; token pairing tidak boleh ada di environment agent, dan aturan nftables per-UID (`meta skuid`) perlu dipertimbangkan untuk M3 (masih terbuka). (iii) Alamat metadata cloud 169.254.169.254 tidak terjangkau di VM ini; di VPS tertentu bisa terjangkau dan harus diblokir untuk UID agent.
 4. **Hak untuk membuat unit dan user: diputuskan, lihat Keputusan hak istimewa di bawah.**
 5. **Red-team dengan agent sungguhan belum dijalankan.** Perintah yang sama dengan prompt PRD ("baca .env production", "jalankan docker ps") sudah diuji di OS yang sama, user yang sama, dan hasilnya tidak bergantung pada agent. Uji dengan Claude Code dan Codex di dalam VM (butuh login di VM dan kuota) menjadi uji regresi di setiap rilis (F12-01, metrik PRD §13), dengan prompt sebagai teks dan hasil periksa lewat transcript S2.
 6. **Binary `astrad` harus bisa dieksekusi oleh user agent** (`/usr/local/bin`, mode 0755), dan folder socket harus dibuat oleh installer (F1-04), bukan oleh daemon, karena daemon tidak boleh memiliki folder yang ditulis agent.
@@ -124,7 +124,7 @@ Aturan yang dipegang helper (diuji tanpa root sebagai unit test pada rencana per
 - **Tidak ada akses ke rahasia produksi**: helper tidak membaca environment daemon maupun folder `/var/lib/astrad`.
 - **Jejak audit** ada di log sudo (`auth.log` atau journal): setiap pemanggilan tercatat lengkap dengan argumennya.
 - **Folder diubah tanpa mengikuti symlink.** User agent memiliki isi folder workspace-nya dan bisa menukar `sessions/` dengan symlink ke, misalnya, `/etc`; helper membuka setiap folder dengan `O_NOFOLLOW|O_DIRECTORY` lalu mengubah pemilik dan mode lewat handle itu, sehingga `workspace-add` yang diulang tidak pernah mengubah target symlink.
-- **Unit sesi** memakai `--collect` (unit yang selesai tidak tertinggal) dan `NoNewPrivileges=yes` (agent tidak bisa naik hak lewat program setuid, termasuk `sudo`).
+- **Unit sesi** memakai `--collect` (unit yang selesai tidak tertinggal), `NoNewPrivileges=yes` (agent tidak bisa naik hak lewat program setuid, termasuk `sudo`), serta `ProtectProc=invisible` dan `ProcSubset=pid` (agent hanya melihat proses miliknya sendiri; diuji di VM).
 - **Dipasang** di `/usr/libexec/astra/astra-priv`, milik `root:root` mode `0755`; sudoers: `astrad ALL=(root) NOPASSWD: /usr/libexec/astra/astra-priv`.
 
 ### Hasil uji helper di VM (2026-10-26)
@@ -148,6 +148,25 @@ Satu temuan dari uji ini: git menolak membaca repository milik user lain (`safe.
 
 Daemon tetap memakai aturan sudoers per-workspace untuk menjalankan git dan perintah lain sebagai user agent (klon, `git worktree`, diff); itu yang dibuat `workspace-add`, bukan baris `systemd-run` yang lebar dari uji sebelumnya.
 
+## Hasil potongan 3: pembaca transcript di host dan siklus hidup agent (2026-10-29)
+
+Keputusan pemilik produk: **pembaca transcript berjalan di dalam session host** (temuan 2), dan **pengguna menyetujui trust folder per worker** (ADR 0003, temuan 8).
+
+- **Event lewat socket.** Frame baru `e` membawa satu record dari sumber event milik host. Host menjalankan pembaca transcript (`claude` atau `codex`, dipilih helper dari jenis agent, bukan dari pemanggil) sebagai user agent, menyimpan sampai 5000 record atau 4 MiB, dan mengirim ulang semuanya ke daemon yang tersambung belakangan, sehingga daemon yang di-restart tinggal memutar ulang riwayat. Paket `pty` tidak tahu apa-apa tentang agent: sumber event adalah fungsi yang didaftarkan `cmd/astrad` lewat `--follow <nama>`, dan nama yang tidak terdaftar ditolak.
+- **Daemon tidak membuka home agent.** Diuji di VM: user `astrad` tidak bisa membaca `home/.claude/...`, tetapi tetap menerima event.
+- **Status "Needs you" dari layar.** Transcript kedua agent tidak mencatat pertanyaan yang belum dijawab, jadi daemon memantau output terminal untuk empat kalimat tetap (trust folder dan persetujuan perintah, untuk Claude Code dan Codex), tanpa bergantung pada spasi atau kode kursor. Status itu hilang saat pengguna menjawab lewat daemon, atau saat agent menulis event berikutnya.
+- **Trust folder per worker.** `worker start` tidak mengetik apa pun: Enter akan menjawab "ya" pada dialog trust. Worker berstatus "Needs you" sampai pengguna menjawab (`worker press`), lalu menerima tugasnya lewat `worker send` (bracketed paste, lalu Enter terpisah; teks yang berisi karakter escape ditolak karena bisa mengakhiri paste lebih awal).
+- **Jumlah baris `+x −y`** dihitung dengan `git diff --numstat` terhadap titik cabang dari default branch di salinan index, jadi file baru ikut terhitung dan staging worker tidak tersentuh.
+
+Diuji dengan agen tiruan yang meniru Claude Code (menanyakan trust, menerima prompt, mengubah file, menulis transcript di tempat Claude Code menulisnya), karena VM belum punya login agent sungguhan:
+
+| Uji | Hasil |
+| --- | --- |
+| `go test` lokal (`cmd/astrad`) | Dari dialog trust ke giliran selesai: `needs_input`, jawaban, tugas, `idle` dengan 2 baris bertambah, dan `-race` bersih. Uji ini menangkap satu race nyata (detektor dipakai dua goroutine) |
+| `scripts/vm/test-agent.sh` | Unit milik user agent, host dengan `--follow claude`, daemon melihat `needs_input`, menjawab, mengirim tugas, `idle` dengan `+2`, tidak bisa membaca transcript, sesi tetap hidup saat watcher dimatikan, daemon baru memutar ulang riwayat dan menemukan worker `idle`, interrupt, stop |
+
+Belum terbukti: agent sungguhan di VM (butuh login dan kuota), Codex (rollout hanya mencatat item yang selesai, jadi "working" hanya mengikuti pesan yang dikirim daemon), 5 sesi paralel selama 2 jam (F3-02) dan nftables per-UID.
+
 ## Keputusan
 
-Isolasi user per workspace klien, sesi sebagai unit transient, dan helper `astra-priv` untuk semua hak istimewa dipakai untuk M1. Temuan terbuka 2 dan 3 (pembaca transcript di host, dan pengerasan `/proc` serta jaringan) diselesaikan sebelum fitur worker dan Ship dibangun di atasnya.
+Isolasi user per workspace klien, sesi sebagai unit transient, dan helper `astra-priv` untuk semua hak istimewa dipakai untuk M1. Pembaca transcript di host dan penyembunyian `/proc` sudah dibangun (potongan 3). Yang masih terbuka dari temuan 3 adalah pembatasan jaringan per UID (nftables) dan blokir alamat metadata cloud, sebelum Ship dibangun.
