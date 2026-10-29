@@ -10,6 +10,7 @@ import (
 // Frames on a session socket: one kind byte, a big-endian uint32 length, then the payload.
 const (
 	frameOutput byte = 'o' // host to daemon: bytes the agent wrote
+	frameEvent  byte = 'e' // host to daemon: one record from the host's event source (the agent's transcript)
 	frameExit   byte = 'x' // host to daemon: the agent exited; payload is an int32 exit code
 	frameInput  byte = 'i' // daemon to host: bytes typed into the terminal
 	frameResize byte = 'r' // daemon to host: rows then cols, two uint16
