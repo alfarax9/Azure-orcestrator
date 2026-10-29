@@ -26,6 +26,19 @@ const (
 // means nobody can reach the session again, so the host stops instead of running forever.
 var socketCheck = 10 * time.Second
 
+// Event history a host keeps for a daemon that reconnects; the oldest records go first.
+const (
+	maxEvents     = 5000
+	maxEventBytes = 4 << 20
+	// eventGrace lets the event source read what the agent wrote just before it exited.
+	eventGrace = 300 * time.Millisecond
+)
+
+// Follower produces opaque event records for a session, such as the structured events of an
+// agent's transcript. It runs inside the host, as the agent's user, so the daemon never has to
+// read the agent's files. It returns when ctx ends.
+type Follower func(ctx context.Context, dir string, emit func(record []byte)) error
+
 // HostConfig describes one session host.
 type HostConfig struct {
 	Socket     string
@@ -34,6 +47,7 @@ type HostConfig struct {
 	Dir        string
 	Env        []string // the agent's whole environment
 	Rows, Cols uint16
+	Follow     Follower      // optional source of event records, started with the session
 	Scrollback int           // bytes of output kept for a reconnecting daemon
 	Linger     time.Duration // how long an exited session waits for a daemon to read its exit code
 	Logger     *slog.Logger
@@ -49,6 +63,8 @@ type host struct {
 
 	mu        sync.Mutex // guards the fields below
 	history   *scrollback
+	events    [][]byte // records sent so far, replayed to a daemon that attaches later
+	eventSize int
 	attached  map[net.Conn]struct{} // connections that receive output; a new one never evicts another
 	conns     map[net.Conn]struct{} // every open connection, closed when the host stops
 	rows      uint16
@@ -96,7 +112,11 @@ func Serve(ctx context.Context, cfg HostConfig) error {
 	wg.Go(func() { exited <- cmd.Wait() })
 	wg.Go(func() { h.watchSocket(done) })
 
+	sctx, stopFollow := context.WithCancel(context.WithoutCancel(ctx))
+	wg.Go(func() { h.follow(sctx) })
 	code := h.waitAgent(ctx, exited, pumped)
+	h.waitForEvents(ctx)
+	stopFollow()
 	close(done)
 	h.finish(code)
 	h.linger(ctx)
@@ -200,6 +220,45 @@ func (h *host) pump() {
 		if err != nil {
 			return
 		}
+	}
+}
+
+// follow runs the event source until ctx ends. Its failure never stops the session: the
+// terminal still works without the structured view.
+func (h *host) follow(ctx context.Context) {
+	if h.cfg.Follow == nil {
+		return
+	}
+	if err := h.cfg.Follow(ctx, h.cfg.Dir, h.event); err != nil && ctx.Err() == nil {
+		h.cfg.Logger.Warn("event source stopped", "err", err)
+	}
+}
+
+// waitForEvents gives the event source a moment to read what the agent wrote just before it
+// exited.
+func (h *host) waitForEvents(ctx context.Context) {
+	if h.cfg.Follow == nil {
+		return
+	}
+	select {
+	case <-time.After(eventGrace):
+	case <-ctx.Done():
+	}
+}
+
+// event keeps one record for later daemons and sends it to the attached ones.
+func (h *host) event(record []byte) {
+	record = append([]byte(nil), record...)
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.events = append(h.events, record)
+	h.eventSize += len(record)
+	for len(h.events) > maxEvents || h.eventSize > maxEventBytes {
+		h.eventSize -= len(h.events[0])
+		h.events = h.events[1:]
+	}
+	for c := range h.attached {
+		h.send(c, frameEvent, record)
 	}
 }
 
