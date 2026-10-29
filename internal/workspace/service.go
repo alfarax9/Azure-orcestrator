@@ -38,10 +38,17 @@ type Projects interface {
 // Workers keeps workers.
 type Workers interface {
 	CreateWorker(ctx context.Context, w domain.Worker) error
+	Worker(ctx context.Context, id domain.WorkerID) (domain.Worker, error)
+	UpdateWorker(ctx context.Context, id domain.WorkerID, change func(*domain.Worker)) (domain.Worker, error)
 }
 
-// ErrInvalid means a name, URL or title was refused before anything was changed.
-var ErrInvalid = errors.New("invalid")
+var (
+	// ErrInvalid means a name, URL or title was refused before anything was changed.
+	ErrInvalid = errors.New("invalid")
+	// ErrClone means git could not fetch the repository: it does not exist, or the agent user
+	// has no access to it. The wrapped text holds git's own explanation.
+	ErrClone = errors.New("could not clone the repository")
+)
 
 // Service creates workspaces, projects and workers.
 type Service struct {
