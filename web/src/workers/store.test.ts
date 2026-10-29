@@ -47,3 +47,40 @@ test("reorder moves keys next to the target", () => {
   store.reorder(["c"], "b", "after");
   expect(store.getOrder()).toEqual(["a", "b", "c"]);
 });
+
+test("a snapshot keeps the order a person gave, puts new workers first, and drops the ones that are gone", () => {
+  const { store } = setup();
+  store.reorder(["c"], "a", "before"); // c, a, b
+  store.replaceAll([testWorker({ id: "a" }), testWorker({ id: "b" }), testWorker({ id: "d", createdAt: 5 }), testWorker({ id: "e", createdAt: 9 })]);
+  expect(store.getOrder()).toEqual(["e", "d", "a", "b"]);
+  expect(store.getWorker("c")).toBeUndefined();
+});
+
+test("a snapshot leaves unchanged workers and statuses alone, and announces real status changes", () => {
+  const { store } = setup();
+  const a = store.getWorker("a");
+  const statuses = store.getStatuses();
+  store.replaceAll([testWorker({ id: "a" }), testWorker({ id: "b" }), testWorker({ id: "c" })]);
+  expect(store.getWorker("a")).toBe(a);
+  expect(store.getStatuses()).toBe(statuses);
+
+  store.replaceAll([testWorker({ id: "a", agentActivity: "working" }), testWorker({ id: "b" }), testWorker({ id: "c", gate: { state: "passed" } })]);
+  expect(store.getStatuses()).toMatchObject({ a: "working", c: "ready_to_ship" });
+  expect(store.getAnnouncement()).toBe("Fix checkout total rounding is ready to ship");
+});
+
+test("upsert adds a new worker on top and replaces a known one only when it changed", () => {
+  const { store, flush } = setup();
+  const listener = vi.fn();
+  store.subscribe(listener);
+  store.upsert(testWorker({ id: "z" }));
+  flush();
+  expect(store.getOrder()[0]).toBe("z");
+  store.upsert(testWorker({ id: "z" }));
+  flush();
+  expect(listener).toHaveBeenCalledTimes(1);
+  store.upsert(testWorker({ id: "z", added: 4 }));
+  flush();
+  expect(listener).toHaveBeenCalledTimes(2);
+  expect(store.getWorker("z")?.added).toBe(4);
+});
