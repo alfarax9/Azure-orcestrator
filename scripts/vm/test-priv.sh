@@ -112,6 +112,9 @@ shellpid=$(pgrep -u "$AGENT" -x bash | head -1)
 keys=$(sudo -n cat /proc/"$shellpid"/environ | tr '\0' '\n' | cut -d= -f1 | sort | tr '\n' ' ')
 echo "  agent environment: $keys"
 if sudo -n cat /proc/"$shellpid"/environ | tr '\0' '\n' | grep -qE '^(SUDO_|SSH_|ASTRA_|XDG_|DBUS_)'; then bad "daemon environment leaked into the agent"; else pass "no variable of the daemon, sudo or ssh reached the agent"; fi
+as_daemon session send t1 'ps -eo user= | sort -u | paste -sd, -\r' >/dev/null 2>&1; sleep 1
+seen=$(as_daemon session tail t1 -for 1s -strip 2>/dev/null | tr -d '\r' | grep -E "^($AGENT|root|astrad|dev)(,|$)" | tail -1)
+[[ $seen == "$AGENT" ]] && pass "the agent sees its own processes only (ProtectProc=invisible)" || bad "the agent sees other users' processes: $seen"
 refused "a working directory that is a link out of work/ is refused" priv session-start $WS t2 --agent shell --dir escape
 refused "the same session cannot be started twice" priv session-start $WS t1 --agent shell
 
