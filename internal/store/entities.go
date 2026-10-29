@@ -13,6 +13,9 @@ func (s *Store) CreateWorkspace(ctx context.Context, w domain.Workspace) error {
 	_, err := s.db.ExecContext(ctx,
 		`INSERT INTO workspaces (id, slug, name, created_at) VALUES (?, ?, ?, ?)`,
 		w.ID, w.Slug, w.Name, w.CreatedAt.UnixMilli())
+	if err == nil {
+		s.publish(domain.Change{Workspace: &w})
+	}
 	return wrap("create workspace "+w.Slug, err)
 }
 
@@ -51,6 +54,9 @@ func (s *Store) CreateProject(ctx context.Context, p domain.Project) error {
 	_, err := s.db.ExecContext(ctx, `INSERT INTO projects (`+projectColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		p.ID, p.WorkspaceID, p.Name, p.RepoURL, p.DefaultBranch, p.Stack,
 		p.Commands.Dev, p.Commands.Build, p.Commands.Test, p.CreatedAt.UnixMilli())
+	if err == nil {
+		s.publish(domain.Change{Project: &p})
+	}
 	return wrap("create project "+p.Name, err)
 }
 
@@ -77,6 +83,9 @@ func (s *Store) SetCommands(ctx context.Context, id domain.ProjectID, c domain.C
 	}
 	if n, err := res.RowsAffected(); err != nil || n == 0 {
 		return fmt.Errorf("set commands of project %s: %w", id, domain.ErrNotFound)
+	}
+	if p, err := s.Project(ctx, id); err == nil {
+		s.publish(domain.Change{Project: &p})
 	}
 	return nil
 }
