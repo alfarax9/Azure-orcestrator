@@ -26,6 +26,8 @@ const readyTimeout = 5 * time.Second
 var (
 	validID   = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,39}$`)
 	validUser = regexp.MustCompile(`^[a-z_][a-z0-9_-]{0,31}$`)
+	// validFollow names an event source registered with HostMainWith.
+	validFollow = regexp.MustCompile(`^[a-z]{1,16}$`)
 )
 
 // sharedMode lets the daemon's group use the socket of a session that runs as another user.
@@ -38,6 +40,7 @@ type Spec struct {
 	Argv       []string
 	Dir        string
 	Env        []string // the agent's whole environment; nothing is inherited from the daemon
+	Follow     string   // name of the event source the host starts, such as "claude"; empty: none
 	Rows, Cols uint16
 }
 
@@ -63,6 +66,9 @@ func (s Spawner) Start(ctx context.Context, spec Spec) (string, error) {
 	if len(spec.Argv) == 0 {
 		return "", errors.New("session needs a command")
 	}
+	if spec.Follow != "" && !validFollow.MatchString(spec.Follow) {
+		return "", fmt.Errorf("invalid event source %q", spec.Follow)
+	}
 	if err := os.MkdirAll(s.SocketDir, 0o700); err != nil {
 		return "", fmt.Errorf("create socket dir: %w", err)
 	}
@@ -74,7 +80,7 @@ func (s Spawner) Start(ctx context.Context, spec Spec) (string, error) {
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return "", fmt.Errorf("launch session host: %w: %s", err, strings.TrimSpace(string(out)))
 	}
-	return sock, waitReady(ctx, sock)
+	return sock, WaitReady(ctx, sock)
 }
 
 // launchCommand builds the command that starts a detached host for spec. For another
@@ -85,6 +91,9 @@ func (s Spawner) launchCommand(ctx context.Context, spec Spec, sock string) (*ex
 		s.Executable, HostCommand, "--detach", "--socket", sock, "--dir", spec.Dir,
 		"--rows", strconv.Itoa(int(spec.Rows)), "--cols", strconv.Itoa(int(spec.Cols)),
 		"--scrollback", strconv.Itoa(s.Scrollback), "--linger", s.Linger.String(),
+	}
+	if spec.Follow != "" {
+		host = append(host, "--follow", spec.Follow)
 	}
 	if spec.User == "" {
 		host = append(host, "--")
@@ -104,7 +113,9 @@ func (s Spawner) launchCommand(ctx context.Context, spec Spec, sock string) (*ex
 	return cmd, nil
 }
 
-func waitReady(ctx context.Context, sock string) error {
+// WaitReady waits until the host listening on sock answers, for a few seconds. A host started
+// by another process, such as a systemd unit, takes a moment to open its socket.
+func WaitReady(ctx context.Context, sock string) error {
 	ctx, cancel := context.WithTimeout(ctx, readyTimeout)
 	defer cancel()
 	tick := time.NewTicker(20 * time.Millisecond)
@@ -138,11 +149,14 @@ func (s Spawner) Sessions(ctx context.Context) ([]string, error) {
 	return ids, nil
 }
 
-// HostMain runs HostCommand with its arguments and environment and returns the exit
-// status. With --detach it re-executes itself in a new session and returns at once, so
-// the caller never owns the host process.
-func HostMain(args, env []string) int {
+// HostMainWith runs HostCommand with its arguments and environment and returns the exit
+// status. With --detach it re-executes itself in a new session and returns at once, so the
+// caller never owns the host process. followers are the event sources a host may be told to
+// start with --follow <name>; an unknown name is refused, so a host never runs anything not
+// registered.
+func HostMainWith(args, env []string, followers map[string]Follower) int {
 	fs := flag.NewFlagSet(HostCommand, flag.ContinueOnError)
+	follow := fs.String("follow", "", "event source to start with the session")
 	detach := fs.Bool("detach", false, "start a detached host and return")
 	cfg := HostConfig{Env: env}
 	fs.StringVar(&cfg.Socket, "socket", "", "unix socket to serve")
@@ -158,6 +172,11 @@ func HostMain(args, env []string) int {
 	perm, err := strconv.ParseUint(*mode, 8, 32)
 	if err != nil || perm&^0o770 != 0 {
 		return 2 // owner and group bits only: a socket is never opened to everyone
+	}
+	if *follow != "" {
+		if cfg.Follow = followers[*follow]; cfg.Follow == nil {
+			return 2
+		}
 	}
 	cfg.SocketMode = os.FileMode(perm)
 	cfg.Argv, cfg.Rows, cfg.Cols = fs.Args(), uint16(*rows), uint16(*cols) //nolint:gosec // terminal sizes are small
