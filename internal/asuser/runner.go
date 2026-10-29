@@ -3,6 +3,7 @@ package asuser
 import (
 	"bytes"
 	"context"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"os"
@@ -94,12 +95,79 @@ func (r Runner) AddWorkspace(ctx context.Context, slug string) error {
 		}
 		return nil
 	}
-	cmd := exec.CommandContext(ctx, "sudo", "-n", r.Helper, "workspace-add", slug) //nolint:gosec // slug is checked above
-	cmd.Dir, cmd.Env = "/", []string{"PATH=/usr/bin:/bin"}
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("prepare workspace %s: %w: %s", slug, err, strings.TrimSpace(string(out)))
+	return r.helper(ctx, "workspace-add", slug)
+}
+
+// Socket is where the session host of a session listens.
+func (r Runner) Socket(slug, id string) string {
+	return filepath.Join(r.Root, slug, "sessions", id+".sock")
+}
+
+// StartSession runs agent ("claude" or "codex") in dir below the workspace's work folder, as a
+// unit of the workspace's agent user. Only a server has units; local mode starts sessions
+// itself.
+func (r Runner) StartSession(ctx context.Context, slug, id, agent, dir string) error {
+	if err := checkTarget(slug, dir); err != nil {
+		return err
 	}
-	return nil
+	args := []string{"session-start", slug, id, "--agent", agent}
+	if dir != "" {
+		args = append(args, "--dir", dir)
+	}
+	return r.helper(ctx, args...)
+}
+
+// StopSession stops the unit of a session.
+func (r Runner) StopSession(ctx context.Context, slug, id string) error {
+	return r.helper(ctx, "session-stop", slug, id)
+}
+
+// helper calls astra-priv through sudo. It checks nothing itself: the helper refuses what it
+// does not accept, and its message comes back as the error.
+func (r Runner) helper(ctx context.Context, args ...string) error {
+	_, err := r.helperOutput(ctx, args...)
+	return err
+}
+
+func (r Runner) helperOutput(ctx context.Context, args ...string) ([]byte, error) {
+	cmd := exec.CommandContext(ctx, "sudo", append([]string{"-n", r.Helper}, args...)...) //nolint:gosec // the helper validates every argument
+	cmd.Dir, cmd.Env = "/", []string{"PATH=/usr/bin:/bin"}
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &stdout, &stderr
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("%s: %w: %s", args[0], err, strings.TrimSpace(stderr.String()))
+	}
+	return stdout.Bytes(), nil
+}
+
+// AgentLogin says which agents are signed in for a workspace. On a server the answer comes from
+// astra-priv, since the daemon may not open an agent's home; in local mode the developer's own
+// home is looked at, for the existence of the login files only.
+func (r Runner) AgentLogin(ctx context.Context, slug string) (map[string]bool, error) {
+	if err := checkTarget(slug, ""); err != nil {
+		return nil, err
+	}
+	if r.Local {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return nil, fmt.Errorf("find home directory: %w", err)
+		}
+		status := map[string]bool{}
+		for agent, file := range map[string]string{"claude": ".claude/.credentials.json", "codex": ".codex/auth.json"} {
+			_, err := os.Lstat(filepath.Join(home, file))
+			status[agent] = err == nil
+		}
+		return status, nil
+	}
+	out, err := r.helperOutput(ctx, "agent-status", slug)
+	if err != nil {
+		return nil, err
+	}
+	var status map[string]bool
+	if err := json.Unmarshal(out, &status); err != nil {
+		return nil, fmt.Errorf("read the agent status: %w", err)
+	}
+	return status, nil
 }
 
 func checkTarget(slug, dir string) error {
