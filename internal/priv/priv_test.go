@@ -21,11 +21,12 @@ type fakeHost struct {
 	execs    [][]string
 	dirs     []Dir
 	sudoers  map[string]string
+	files    map[string]bool
 	execFail bool
 }
 
 func newFakeHost() *fakeHost {
-	return &fakeHost{users: map[string]Agent{}, groups: map[string]bool{"astrad": true}, sudoers: map[string]string{}}
+	return &fakeHost{users: map[string]Agent{}, groups: map[string]bool{"astrad": true}, sudoers: map[string]string{}, files: map[string]bool{}}
 }
 
 func (f *fakeHost) Exec(_ context.Context, argv ...string) ([]byte, error) {
@@ -45,6 +46,7 @@ func (f *fakeHost) LookupAgent(name string) (Agent, error) {
 }
 
 func (f *fakeHost) GroupExists(name string) bool { return f.groups[name] }
+func (f *fakeHost) FileExists(path string) bool  { return f.files[path] }
 func (f *fakeHost) Install(d Dir) error          { f.dirs = append(f.dirs, d); return nil }
 
 func (f *fakeHost) WriteSudoers(_ context.Context, dir, name, content string) error {
@@ -215,7 +217,8 @@ func TestSessionStartBuildsOneUnitForTheAgentUser(t *testing.T) {
 		"--uid=astra-agent-acme", "--gid=astra-agent-acme",
 		"--working-directory=/var/lib/astra/agents/acme/work/site/feat-x",
 		"--property=MemoryMax=2048M", "--property=CPUQuota=150%", "--property=TasksMax=512",
-		"--property=NoNewPrivileges=yes", "--setenv=HOME=/var/lib/astra/agents/acme/home",
+		"--property=NoNewPrivileges=yes", "--property=ProtectProc=invisible", "--property=ProcSubset=pid",
+		"--setenv=HOME=/var/lib/astra/agents/acme/home",
 	} {
 		if !slices.Contains(argv, want) {
 			t.Errorf("missing %q in %v", want, argv)
@@ -223,10 +226,21 @@ func TestSessionStartBuildsOneUnitForTheAgentUser(t *testing.T) {
 	}
 	tail := argv[slices.Index(argv, "/usr/local/bin/astrad"):]
 	wantTail := []string{"/usr/local/bin/astrad", "session-host", "--socket", out, "--socket-mode", "660",
-		"--dir", "/var/lib/astra/agents/acme/work/site/feat-x", "--rows", "30", "--cols", "100", "--",
-		"/usr/local/bin/claude"}
+		"--dir", "/var/lib/astra/agents/acme/work/site/feat-x", "--rows", "30", "--cols", "100",
+		"--follow", "claude", "--", "/usr/local/bin/claude"}
 	if fmt.Sprint(tail) != fmt.Sprint(wantTail) {
 		t.Errorf("host command = %v, want %v", tail, wantTail)
+	}
+}
+
+func TestOnlyAgentsWithATranscriptGetAnEventSource(t *testing.T) {
+	h := newFakeHost()
+	h.users["astra-agent-acme"] = Agent{}
+	if _, err := run(h, "session-start", "acme", "s1", "--agent", "shell"); err != nil {
+		t.Fatal(err)
+	}
+	if slices.Contains(h.execs[0], "--follow") {
+		t.Errorf("a plain shell has no transcript: %v", h.execs[0])
 	}
 }
 
@@ -362,5 +376,41 @@ func TestInstallSetsModeAndRefusesLinks(t *testing.T) {
 	}
 	if info, _ := os.Stat(target); info.Mode().Perm() == 0o777 {
 		t.Error("the link's target was changed")
+	}
+}
+
+func TestAgentStatusSaysWhichLoginsExistWithoutReadingThem(t *testing.T) {
+	h := newFakeHost()
+	h.files["/var/lib/astra/agents/acme/home/.claude/.credentials.json"] = true
+	out, err := run(h, "agent-status", "acme")
+	if err != nil || out != `{"claude":true,"codex":false}` {
+		t.Errorf("status = %q, %v", out, err)
+	}
+	h.files["/var/lib/astra/agents/acme/home/.codex/auth.json"] = true
+	if out, _ := run(h, "agent-status", "acme"); out != `{"claude":true,"codex":true}` {
+		t.Errorf("status = %q", out)
+	}
+	for _, args := range [][]string{{"agent-status"}, {"agent-status", "ACME"}, {"agent-status", "a", "b"}, {"agent-status", "../etc"}} {
+		if _, err := run(newFakeHost(), args...); !errors.Is(err, ErrUsage) {
+			t.Errorf("%q: err = %v, want a usage error", args, err)
+		}
+	}
+}
+
+func TestFileExistsDoesNotFollowLinksAndSeesNothingElse(t *testing.T) {
+	dir := t.TempDir()
+	var h SystemHost
+	if h.FileExists(filepath.Join(dir, "none")) {
+		t.Error("a missing file exists")
+	}
+	file := filepath.Join(dir, "creds")
+	_ = os.WriteFile(file, []byte("secret"), 0o600)
+	if !h.FileExists(file) {
+		t.Error("an existing file is missing")
+	}
+	link := filepath.Join(dir, "link")
+	_ = os.Symlink(filepath.Join(dir, "gone"), link)
+	if !h.FileExists(link) {
+		t.Error("a dangling link is still something at that path")
 	}
 }
