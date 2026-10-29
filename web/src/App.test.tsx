@@ -4,6 +4,7 @@ import { App } from "./App";
 import { sampleWorkers } from "./board/sampleWorkers";
 
 test("the Board shows every sample worker in exactly one column", () => {
+  window.history.pushState({}, "", "/?sample");
   render(<App />);
   expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
   expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Board · 6 need you");
