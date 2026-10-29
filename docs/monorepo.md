@@ -64,6 +64,7 @@ Desktop hanya boleh mengimpor package root yang memang ditujukan untuk client:
 | --- | --- |
 | `internal/api/client` (client HTTP + WebSocket ke daemon) | Package capability (`agent`, `deploy`, dan lainnya) |
 | `internal/domain` (tipe fakta dan kosakata status) | Package infrastruktur (`store`, `docker`, dan lainnya) |
+| `internal/server` dan `internal/remote` (periksa kesiapan, pasang daemon lewat SSH, pairing; ADR 0007) | |
 
 Karena path modul desktop (`github.com/alfarax9/astra/desktop`) berada di dalam path modul root, aturan `internal` Go mengizinkan desktop mengimpor `github.com/alfarax9/astra/internal/...`.
 
@@ -71,7 +72,7 @@ Karena path modul desktop (`github.com/alfarax9/astra/desktop`) berada di dalam 
 
 **Ditegakkan otomatis:** rule depguard `desktop-is-a-client` di `.golangci.yml` menolak impor package capability dan infrastruktur dari `desktop/`. golangci-lint yang dijalankan di dalam `desktop/` memakai `.golangci.yml` di root.
 
-Desktop tidak boleh menjalankan logika bisnis. Semua keputusan tetap di daemon, dan desktop hanya menampilkan serta mengirim perintah.
+Desktop tidak boleh menjalankan logika bisnis. Semua keputusan tetap di daemon, dan desktop hanya menampilkan serta mengirim perintah. Satu pengecualian, dari ADR 0007: pemasangan daemon terjadi sebelum daemon ada, jadi logikanya (`internal/server`, lewat SSH di `internal/remote`) dijalankan di sisi client, dan desktop boleh memakainya; CLI `astra` memakai paket yang sama.
 
 ### 3.3 Pengembangan lokal dengan `go.work`
 
