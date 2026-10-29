@@ -17,6 +17,9 @@ type (
 	WorkerID string
 )
 
+// NewDeviceID returns the identifier of a paired device.
+func NewDeviceID() string { return uuid.NewV7().String() }
+
 // NewWorkspaceID returns a new workspace identifier.
 func NewWorkspaceID() WorkspaceID { return WorkspaceID(uuid.NewV7().String()) }
 
