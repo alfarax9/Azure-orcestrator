@@ -93,6 +93,23 @@ func (m *memStore) SetCommands(_ context.Context, id domain.ProjectID, c domain.
 	return nil
 }
 
+func (m *memStore) Worker(_ context.Context, id domain.WorkerID) (domain.Worker, error) {
+	if w, ok := m.workers[id]; ok {
+		return w, nil
+	}
+	return domain.Worker{}, domain.ErrNotFound
+}
+
+func (m *memStore) UpdateWorker(_ context.Context, id domain.WorkerID, change func(*domain.Worker)) (domain.Worker, error) {
+	w, ok := m.workers[id]
+	if !ok {
+		return w, domain.ErrNotFound
+	}
+	change(&w)
+	m.workers[id] = w
+	return w, nil
+}
+
 func (m *memStore) CreateWorker(_ context.Context, w domain.Worker) error {
 	if m.failWrite != nil {
 		return m.failWrite
@@ -367,5 +384,54 @@ func TestBranchNames(t *testing.T) {
 		if got := branchName(title, id); got != want {
 			t.Errorf("branchName(%q) = %q, want %q", title, got, want)
 		}
+	}
+}
+
+func TestRefreshCountsEverythingAWorkerChanged(t *testing.T) {
+	f := newFixture(t)
+	_, url := remote(t)
+	p, err := f.svc.AddProject(t.Context(), "acme", "site", url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w, err := f.svc.CreateWorker(t.Context(), p.ID, "Count", domain.AgentClaude, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := f.work(w.Worktree)
+	if err := f.svc.Refresh(t.Context(), w.ID); err != nil || f.store.workers[w.ID].Added != 0 {
+		t.Fatalf("a fresh worktree has no changes: %v, %+v", err, f.store.workers[w.ID])
+	}
+	// One new file of 3 lines, and a committed change of one line to package.json plus a
+	// second, uncommitted one.
+	write := func(name, content string) {
+		t.Helper()
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("new.txt", "a\nb\nc\n")
+	write("package.json", "{}\n")
+	git(t, dir, "add", "package.json")
+	git(t, dir, "commit", "--quiet", "-m", "shrink")
+	write("package.json", "{}\n// more\n")
+	if err := f.svc.Refresh(t.Context(), w.ID); err != nil {
+		t.Fatal(err)
+	}
+	got := f.store.workers[w.ID]
+	if got.Added != 5 || got.Removed != 1 {
+		t.Errorf("counted +%d -%d, want +5 -1", got.Added, got.Removed)
+	}
+	if status := git(t, dir, "status", "--porcelain"); !strings.Contains(status, "?? new.txt") {
+		t.Errorf("the worker's own staging was touched: %q", status)
+	}
+	if err := f.svc.Refresh(t.Context(), "nobody"); !errors.Is(err, domain.ErrNotFound) {
+		t.Errorf("unknown worker: err = %v", err)
+	}
+}
+
+func TestNumstatSkipsBinaryFilesAndNoise(t *testing.T) {
+	if a, r := sumNumstat("3\t1\ta.go\n-\t-\timg.png\n\nnot a line\n2\t0\tb.go\n"); a != 5 || r != 1 {
+		t.Errorf("+%d -%d, want +5 -1", a, r)
 	}
 }
