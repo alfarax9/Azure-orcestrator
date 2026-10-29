@@ -41,6 +41,8 @@ export function createWorkerStore(initial: Worker[], schedule: Schedule = nextFr
     changed();
   }
 
+  const same = (a: Worker, b: Worker) => JSON.stringify(a) === JSON.stringify(b);
+
   return {
     subscribe(listener: Listener) {
       listeners.add(listener);
@@ -57,6 +59,41 @@ export function createWorkerStore(initial: Worker[], schedule: Schedule = nextFr
     add(w: Worker) {
       order = [w.id, ...order];
       setWorker(w);
+    },
+    /** Adds the worker, or replaces it when it is already known. */
+    upsert(w: Worker) {
+      const known = workers[w.id];
+      if (!known) {
+        order = [w.id, ...order];
+        setWorker(w);
+      } else if (!same(known, w)) {
+        setWorker(w);
+      }
+    },
+    /**
+     * Makes the workers exactly `next`, as a snapshot from the daemon does after a (re)connect.
+     * Workers that did not change keep their object, so their cards do not render again, and
+     * the order a person gave by dragging is kept; new workers go first, newest on top.
+     */
+    replaceAll(next: Worker[]) {
+      const before = workers;
+      workers = {};
+      const nextStatuses: Record<string, WorkerStatus> = {};
+      for (const w of next) {
+        const known = before[w.id];
+        const kept = known && same(known, w) ? known : w;
+        workers[w.id] = kept;
+        const status = deriveStatus(kept);
+        nextStatuses[w.id] = status;
+        const previous = statuses[w.id];
+        if (previous && previous !== status) lastAnnouncement = announcement(kept, status) ?? lastAnnouncement;
+      }
+      const unchanged =
+        Object.keys(nextStatuses).length === Object.keys(statuses).length && Object.entries(nextStatuses).every(([id, s]) => statuses[id] === s);
+      if (!unchanged) statuses = nextStatuses;
+      const fresh = next.filter((w) => !before[w.id]).sort((a, b) => b.createdAt - a.createdAt).map((w) => w.id);
+      order = [...fresh, ...order.filter((id) => workers[id])];
+      changed();
     },
     /** Moves keys next to target, keeping their relative order (drag and drop reorder). */
     reorder(keys: string[], target: string, position: "before" | "after") {
