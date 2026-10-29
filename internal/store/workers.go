@@ -30,6 +30,9 @@ func (s *Store) CreateWorker(ctx context.Context, w domain.Worker) error {
 		w.ID, w.ProjectID, w.Title, w.Agent, w.Branch, w.Worktree, w.ClientReview, w.CreatedAt.UnixMilli(),
 		w.Activity, w.PreviewLive, w.Shared, w.NewFeedback, w.Gate.State, w.Gate.Cause,
 		w.Deployment.State, w.Deployment.Reason, w.Added, w.Removed, s.now().UnixMilli())
+	if err == nil {
+		s.publish(domain.Change{Worker: &w})
+	}
 	return wrap("create worker "+string(w.ID), err)
 }
 
@@ -95,6 +98,7 @@ func (s *Store) UpdateWorker(ctx context.Context, id domain.WorkerID, change fun
 	if err := tx.Commit(); err != nil {
 		return w, fmt.Errorf("commit update of worker %s: %w", id, err)
 	}
+	s.publish(domain.Change{Worker: &w})
 	return w, nil
 }
 
