@@ -22,7 +22,7 @@ const CardItem = memo(function CardItem({ id, index, count, onMove }: CardItemPr
  * One Board column. Cards change column only when their facts change (F4-01);
  * drag and drop (mouse or keyboard) and the card menu reorder cards inside a column.
  */
-export function ColumnList({ label, ids }: { label: string; ids: string[] }) {
+export function ColumnList({ label, ids, onOpen }: { label: string; ids: string[]; onOpen?: (id: string) => void }) {
   const store = useWorkerStore();
   const items = useMemo(() => ids.map((id, index) => ({ id, index })), [ids]);
   const { dragAndDropHooks } = useDragAndDrop({
@@ -53,6 +53,7 @@ export function ColumnList({ label, ids }: { label: string; ids: string[] }) {
       items={items}
       dragAndDropHooks={dragAndDropHooks}
       className="card-list"
+      onAction={onOpen ? (key) => onOpen(String(key)) : undefined}
       renderEmptyState={() => <p className="column-empty">No workers here</p>}
     >
       {(item) => <CardItem id={item.id} index={item.index} count={ids.length} onMove={move} />}
