@@ -9,6 +9,13 @@ export default defineConfig({
     { ...optimizeLocales.vite({ locales: ["en-US", "id-ID"] }), enforce: "pre" },
   ],
   // The taste-skill inspector expects the app on :5173 (DESIGN_RULES.md §1).
-  server: { port: 5173, strictPort: true },
-  test: { environment: "jsdom" },
+  // In development the daemon is reached through the dev server, so the page and the API share
+  // an origin, as they do when the daemon serves the page itself (ADR 0006). The daemon must list
+  // http://localhost:5173 in ASTRA_ORIGINS, because the proxy passes the browser's Origin on.
+  server: {
+    port: 5173,
+    strictPort: true,
+    proxy: { "/api": { target: "http://127.0.0.1:7437", ws: true } },
+  },
+  test: { environment: "jsdom", setupFiles: ["./src/test-setup.ts"] },
 });
