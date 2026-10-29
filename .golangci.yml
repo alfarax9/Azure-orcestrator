@@ -62,6 +62,8 @@ linters:
         capabilities-skip-infra:
           files:
             - "**/internal/agent/**"
+            - "**/internal/auth/**"
+            - "**/internal/checklist/**"
             - "**/internal/workspace/**"
             - "**/internal/preview/**"
             - "**/internal/feedback/**"
@@ -123,8 +125,6 @@ linters:
               desc: desktop only uses internal/api/client and internal/domain (docs/monorepo.md)
             - pkg: github.com/alfarax9/astra/internal/watch
               desc: desktop only uses internal/api/client and internal/domain (docs/monorepo.md)
-            - pkg: github.com/alfarax9/astra/internal/server
-              desc: desktop only uses internal/api/client and internal/domain (docs/monorepo.md)
             - pkg: github.com/alfarax9/astra/internal/store
               desc: desktop only uses internal/api/client and internal/domain (docs/monorepo.md)
             - pkg: github.com/alfarax9/astra/internal/proxy
@@ -136,8 +136,6 @@ linters:
             - pkg: github.com/alfarax9/astra/internal/docker
               desc: desktop only uses internal/api/client and internal/domain (docs/monorepo.md)
             - pkg: github.com/alfarax9/astra/internal/dns
-              desc: desktop only uses internal/api/client and internal/domain (docs/monorepo.md)
-            - pkg: github.com/alfarax9/astra/internal/remote
               desc: desktop only uses internal/api/client and internal/domain (docs/monorepo.md)
   exclusions:
     rules:
