@@ -24,8 +24,9 @@ var migrations embed.FS
 
 // Store is the daemon's database.
 type Store struct {
-	db  *sql.DB
-	now func() time.Time
+	db   *sql.DB
+	now  func() time.Time
+	subs listeners
 }
 
 // Open opens (creating if needed) the database at path and brings its schema up to date.
