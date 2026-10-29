@@ -81,7 +81,7 @@ func (h Helper) sessionStart(ctx context.Context, args []string, out io.Writer) 
 	if err != nil {
 		return err
 	}
-	agentCmd, ok := h.Config.Agents[r.agent]
+	spec, ok := h.Config.Agents[r.agent]
 	if !ok {
 		return fmt.Errorf("%w: agent must be one of %s", ErrUsage, strings.Join(h.agentKinds(), ", "))
 	}
@@ -93,7 +93,7 @@ func (h Helper) sessionStart(ctx context.Context, args []string, out io.Writer) 
 		return fmt.Errorf("%w: working directory: %w", ErrUsage, err)
 	}
 	sock := h.Config.sessionsDir(r.slug) + "/" + r.id + ".sock"
-	if output, err := h.Host.Exec(ctx, h.unitCommand(r, dir, sock, agentCmd)...); err != nil {
+	if output, err := h.Host.Exec(ctx, h.unitCommand(r, dir, sock, spec)...); err != nil {
 		return fmt.Errorf("start session %s: %w: %s", r.id, err, strings.TrimSpace(string(output)))
 	}
 	_, err = fmt.Fprintln(out, sock)
@@ -102,7 +102,7 @@ func (h Helper) sessionStart(ctx context.Context, args []string, out io.Writer) 
 
 // unitCommand builds the systemd-run command line. The agent's environment is listed here
 // in full, so nothing the daemon knows reaches it and no secret appears in a process list.
-func (h Helper) unitCommand(r sessionRequest, dir, sock string, agentCmd []string) []string {
+func (h Helper) unitCommand(r sessionRequest, dir, sock string, spec AgentSpec) []string {
 	agent := agentUser(r.slug)
 	argv := []string{
 		systemdRun, "--quiet", "--collect",
@@ -114,6 +114,9 @@ func (h Helper) unitCommand(r sessionRequest, dir, sock string, agentCmd []strin
 		"--property=CPUQuota=" + strconv.Itoa(r.cpuPercent) + "%",
 		"--property=TasksMax=" + strconv.Itoa(tasksMax),
 		"--property=NoNewPrivileges=yes",
+		// The agent sees its own processes only, so it cannot read the command line or the
+		// environment of the daemon or of another workspace's agent (ADR 0005, finding 3).
+		"--property=ProtectProc=invisible", "--property=ProcSubset=pid",
 	}
 	for _, kv := range []string{
 		"HOME=" + h.Config.homeDir(r.slug), "USER=" + agent, "LOGNAME=" + agent, "SHELL=/bin/bash",
@@ -122,8 +125,11 @@ func (h Helper) unitCommand(r sessionRequest, dir, sock string, agentCmd []strin
 		argv = append(argv, "--setenv="+kv)
 	}
 	argv = append(argv, h.Config.Executable, "session-host", "--socket", sock, "--socket-mode", "660",
-		"--dir", dir, "--rows", strconv.Itoa(r.rows), "--cols", strconv.Itoa(r.cols), "--")
-	return append(argv, agentCmd...)
+		"--dir", dir, "--rows", strconv.Itoa(r.rows), "--cols", strconv.Itoa(r.cols))
+	if spec.Follow != "" {
+		argv = append(argv, "--follow", spec.Follow)
+	}
+	return append(append(argv, "--"), spec.Command...)
 }
 
 func (h Helper) agentKinds() []string {
