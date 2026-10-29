@@ -1,0 +1,88 @@
+.terminal {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+}
+
+.terminal-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  border-bottom: 1px solid var(--rule);
+}
+
+.terminal-agent {
+  font-weight: 600;
+}
+
+.terminal-state {
+  flex: 1;
+  color: var(--muted);
+  font-size: var(--fs-small);
+}
+
+.terminal-action {
+  height: 24px;
+}
+
+.terminal-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: min(60dvh, 640px);
+  min-height: 240px;
+  padding: var(--space-3);
+}
+
+.terminal-screen {
+  flex: 1;
+  min-height: 0;
+}
+
+.terminal-screen[hidden] {
+  display: none;
+}
+
+.terminal-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  max-width: 480px;
+}
+
+.terminal-empty p {
+  margin: 0;
+}
+
+.terminal-empty-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.terminal-problem {
+  padding: 0 var(--space-3);
+}
+
+.terminal-hint {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+/* xterm paints its own background; keep it on the token so a theme change shows. */
+.terminal-screen .xterm {
+  height: 100%;
+}
+
+.terminal-header:focus-visible {
+  outline-offset: -2px;
+}
