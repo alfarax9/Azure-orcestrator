@@ -64,3 +64,6 @@ docs/prd/*.pdf
 # OS files
 .DS_Store
 Thumbs.db
+
+# Screenshots of a third-party app, kept locally for research only
+docs/sokudo-observation/screens/
