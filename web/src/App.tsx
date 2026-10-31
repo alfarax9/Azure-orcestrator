@@ -15,6 +15,7 @@ import { useRoute, workerHref } from "./router";
 import { Shell } from "./shell/Shell";
 import { ConnectionStatus } from "./shell/ConnectionStatus";
 import { StatusBar } from "./shell/StatusBar";
+import { WorkerList } from "./shell/WorkerList";
 import { WorkerDetail } from "./worker/WorkerDetail";
 import { createWorkerStore, useWorkerStore, WorkerStoreContext, type WorkerStore } from "./workers/store";
 
@@ -129,7 +130,7 @@ function Connected({ token, onSignOut }: { token: string; onSignOut: (why?: stri
   return (
     <DaemonContext value={daemon}>
       <WorkerStoreContext value={store}>
-        <Shell statusBar={<ConnectionStatus state={connection} />}>
+        <Shell statusBar={<ConnectionStatus state={connection} />} sidebar={<WorkerList />}>
           <Screens />
         </Shell>
       </WorkerStoreContext>
