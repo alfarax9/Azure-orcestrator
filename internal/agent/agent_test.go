@@ -45,7 +45,7 @@ func TestAdaptersMatchGoldenFiles(t *testing.T) {
 		parse Parser
 	}{
 		{"claude", ParseClaude},
-		{"codex", ParseCodex},
+		{"codex", NewCodexParser()},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			events := parseFile(t, filepath.Join("testdata", tt.name+".jsonl"), tt.parse)
