@@ -162,6 +162,16 @@ func TestWorkersKeepTheirFactsAndNeverAStatus(t *testing.T) {
 	if updated.ID != w.ID || updated.Agent != domain.AgentCodex || updated.ProjectID != p.ID {
 		t.Errorf("identity changed: %+v", updated)
 	}
+	queued, err := s.UpdateWorker(ctx, w.ID, func(w *domain.Worker) { w.Queued = true })
+	if err != nil || !queued.Queued || queued.Status() != domain.StatusQueued {
+		t.Fatalf("queued: %+v, %v", queued, err)
+	}
+	if again, _ := s.Worker(ctx, w.ID); !again.Queued {
+		t.Error("the queued fact was not stored")
+	}
+	if _, err := s.UpdateWorker(ctx, w.ID, func(w *domain.Worker) { w.Queued = false }); err != nil {
+		t.Fatal(err)
+	}
 	stored, _ := s.Worker(ctx, w.ID)
 	if stored != updated || stored.Gate.Cause != "2 tests failing" || stored.Status() != domain.StatusGateFailed {
 		t.Errorf("stored %+v, status %s", stored, stored.Status())
