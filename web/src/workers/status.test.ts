@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { deriveStatus, statusDetail } from "./status";
+import { deriveStatus, STATUS, statusDetail } from "./status";
 import { testWorker } from "./testWorker";
 
 describe("deriveStatus", () => {
@@ -31,4 +31,11 @@ describe("statusDetail", () => {
     expect(statusDetail(testWorker({ newFeedback: 1 }), "client_feedback")).toBe("1 new comment");
     expect(statusDetail(testWorker(), "working")).toBeNull();
   });
+});
+
+test("a queued worker is Queued, whatever else its facts say, and says what it waits for", () => {
+  const w = testWorker({ queued: true, agentActivity: "working" });
+  expect(deriveStatus(w)).toBe("queued");
+  expect(STATUS.queued.column).toBe("working");
+  expect(statusDetail(w, "queued")).toBe("Waiting for a free slot");
 });
