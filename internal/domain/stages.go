@@ -68,6 +68,9 @@ func (w Worker) StageStates() []StageState {
 // stagePosition finds the stage the worker is at and how that stage looks. A live
 // deployment is past the last stage.
 func (w Worker) stagePosition(at func(Stage, StageState) stagePosition) stagePosition {
+	if w.Queued {
+		return at(StageWorktree, StagePending)
+	}
 	switch w.Deployment.State {
 	case DeployRolledBack:
 		return at(StageWatch, StageFailed)
