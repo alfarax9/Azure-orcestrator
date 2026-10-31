@@ -46,6 +46,7 @@ type Reads interface {
 	Project(ctx context.Context, id domain.ProjectID) (domain.Project, error)
 	Workers(ctx context.Context, workspaceSlug string) ([]domain.Worker, error)
 	Worker(ctx context.Context, id domain.WorkerID) (domain.Worker, error)
+	UsageByDay(ctx context.Context, since time.Time) ([]domain.UsageDay, error)
 	Subscribe(fn func(domain.Change)) (cancel func())
 }
 
@@ -112,6 +113,7 @@ func (s *Server) Handler() http.Handler {
 	authed("GET /api/v1/checklist", s.getChecklist)
 	authed("GET /api/v1/workers", s.listWorkers)
 	authed("GET /api/v1/workers/{id}", s.getWorker)
+	authed("GET /api/v1/usage", s.getUsage)
 	authed("POST /api/v1/projects/{id}/workers", s.newWorker)
 	authed("POST /api/v1/workers/{id}/start", s.startWorker)
 	authed("POST /api/v1/workers/{id}/stop", s.stopWorker)
