@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/alfarax9/astra/internal/domain"
 )
 
 // Claude Code writes one JSON object per line to ~/.claude/projects/<cwd>/<session>.jsonl.
@@ -16,8 +18,16 @@ type claudeEntry struct {
 	IsMeta      bool      `json:"isMeta"`
 	IsSidechain bool      `json:"isSidechain"`
 	Message     struct {
+		ID         string         `json:"id"`
+		Model      string         `json:"model"`
 		Content    jsontext.Value `json:"content"`
 		StopReason string         `json:"stop_reason"`
+		Usage      struct {
+			Input      int `json:"input_tokens"`
+			Output     int `json:"output_tokens"`
+			CacheRead  int `json:"cache_read_input_tokens"`
+			CacheWrite int `json:"cache_creation_input_tokens"`
+		} `json:"usage"`
 	} `json:"message"`
 	ToolUseResult jsontext.Value `json:"toolUseResult"`
 }
@@ -55,13 +65,20 @@ type claudeResult struct {
 var fileTools = map[string]bool{"Edit": true, "MultiEdit": true, "Write": true, "NotebookEdit": true}
 
 // ParseClaude turns one line of a Claude Code transcript into events. Lines it does not
-// use (settings, attachments, subagent work, internal notes) give no events.
+// use (settings, attachments, internal notes) give no events, and subagent work gives only usage.
 func ParseClaude(line []byte) ([]Event, error) {
 	var e claudeEntry
 	if err := json.Unmarshal(line, &e); err != nil {
 		return nil, fmt.Errorf("claude transcript line: %w", err)
 	}
-	if e.IsMeta || e.IsSidechain {
+	if e.IsMeta {
+		return nil, nil
+	}
+	if e.IsSidechain {
+		// A subagent's work is not shown, but it spends tokens like any other.
+		if e.Type == "assistant" {
+			return claudeUsage(e), nil
+		}
 		return nil, nil
 	}
 	switch e.Type {
@@ -141,7 +158,22 @@ func claudeAssistant(e claudeEntry) []Event {
 	if e.Message.StopReason == "end_turn" && len(events) > 0 {
 		events = append(events, Event{At: e.Timestamp, Kind: KindTurnEnd})
 	}
-	return events
+	return append(events, claudeUsage(e)...)
+}
+
+// claudeUsage reports the tokens of an assistant message. A message is written as several
+// entries that each repeat its usage with the same id, and the last one is complete, so the
+// id is the key and each report replaces the one before it.
+func claudeUsage(e claudeEntry) []Event {
+	m := e.Message
+	u := domain.Usage{
+		Key: m.ID, Model: m.Model, InputTokens: m.Usage.Input, OutputTokens: m.Usage.Output,
+		CacheReadTokens: m.Usage.CacheRead, CacheWriteTokens: m.Usage.CacheWrite,
+	}
+	if m.ID == "" || u.Empty() {
+		return nil
+	}
+	return []Event{{At: e.Timestamp, Kind: KindUsage, Usage: &u}}
 }
 
 func claudeBlockEvent(at time.Time, b claudeBlock) (Event, bool) {
