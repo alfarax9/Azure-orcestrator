@@ -56,7 +56,7 @@ Semua endpoint di bawah `/api/v1`. Galat berbentuk `{"error":{"code":"not_found"
 
 Dibangun: `internal/auth` (pairing dan token perangkat), `internal/api` (REST, `events`, terminal), notifikasi perubahan di `internal/store`, `agent.Supervisor`, dan `astrad serve|pair|devices`. Dependensi baru hanya `github.com/coder/websocket` v1.8.15 (dependensi langsung sekarang 3 dari maksimal 25).
 
-Rute: `GET /api/v1/version`, `POST /api/v1/pairing` (tanpa token); dengan token perangkat: `GET|POST /workspaces`, `GET|POST /projects`, `PUT /projects/{id}/commands`, `GET /workers`, `GET /workers/{id}`, `POST /projects/{id}/workers`, `POST /workers/{id}/start|stop|interrupt|messages`, `GET /events` (WebSocket), `GET /sessions/{id}/pty` (WebSocket). Cara memakai dari nol: `astrad pair` di server (lewat SSH) mencetak token, lalu `POST /pairing {"token":"…","name":"Laptop"}` mengembalikan token perangkat.
+Rute: `GET /api/v1/version`, `POST /api/v1/pairing` (tanpa token); dengan token perangkat: `GET|POST /workspaces`, `GET|POST /projects`, `PUT /projects/{id}/commands`, `GET /workers`, `GET /workers/{id}`, `GET /usage?days=30` (token per hari, agent, dan model; F14-04), `POST /projects/{id}/workers`, `POST /workers/{id}/start|stop|interrupt|messages`, `GET /events` (WebSocket), `GET /sessions/{id}/pty` (WebSocket). `POST /workers/{id}/start` menjawab **202** (bukan 200) dengan worker berstatus Queued bila server sudah menjalankan sebanyak `ASTRA_MAX_WORKERS` worker (F10-05, ADR 0008); worker itu dimulai sendiri saat satu slot kosong. Cara memakai dari nol: `astrad pair` di server (lewat SSH) mencetak token, lalu `POST /pairing {"token":"…","name":"Laptop"}` mengembalikan token perangkat.
 
 | Uji | Hasil |
 | --- | --- |
