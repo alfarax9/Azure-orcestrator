@@ -27,6 +27,7 @@ test("a worker from the daemon becomes a Board worker with the agent's name", ()
     branch: "astra/fix-the-header-3a9f2c",
     agent: "Claude Code",
     createdAt: 1_700_000_000_000,
+    queued: false,
     clientReview: true,
     agentActivity: "needs_input",
     previewLive: false,
