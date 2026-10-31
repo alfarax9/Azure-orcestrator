@@ -10,6 +10,7 @@ const CLIENT = STAGES.indexOf("Client");
 
 function current(w: Worker): { index: number; state: StageState } {
   const at = (stage: Stage, state: StageState) => ({ index: STAGES.indexOf(stage), state });
+  if (w.queued) return at("Worktree", "pending");
   switch (w.deployment.state) {
     case "rolled_back":
       return at("Watch", "failed");
