@@ -1,5 +1,5 @@
-import { Columns3, FolderGit2, Server, Settings, type LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { Columns3, FolderGit2, PanelLeft, PanelRight, Server, Settings, type LucideIcon } from "lucide-react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { Focusable, Tooltip, TooltipTrigger } from "react-aria-components";
 import "./Shell.css";
 
@@ -14,55 +14,110 @@ function ProductMark() {
   );
 }
 
-function RailItem({ label, icon: Icon, current = false }: { label: string; icon: LucideIcon; current?: boolean }) {
+function NavItem({ label, icon: Icon, current = false }: { label: string; icon: LucideIcon; current?: boolean }) {
   const hint = current ? label : `${label} (not in this prototype)`;
   return (
     <TooltipTrigger delay={300}>
       <Focusable>
-        <a className="rail-item" href={current ? "#main" : undefined} aria-current={current ? "page" : undefined} aria-disabled={current ? undefined : true} tabIndex={0}>
+        <a className="nav-item" href={current ? "#main" : undefined} aria-current={current ? "page" : undefined} aria-disabled={current ? undefined : true} tabIndex={0}>
           <Icon size={18} strokeWidth={1.5} aria-hidden="true" />
-          <span className="rail-label">{label}</span>
+          <span className="nav-label">{label}</span>
         </a>
       </Focusable>
-      <Tooltip className="tooltip" placement="end" offset={8}>
+      <Tooltip className="tooltip" placement="top" offset={8}>
         {hint}
       </Tooltip>
     </TooltipTrigger>
   );
 }
 
-export function Shell({ children, statusBar }: { children: ReactNode; statusBar: ReactNode }) {
+/**
+ * The shell (DESIGN_SYSTEM.md §9.1, ADR 0009): a top bar and a status bar on the window, and three
+ * floating panels between them: the sidebar (navigation and `sidebar`), the main area, and an optional
+ * right panel. Below 1100px the `sidebar` becomes a drawer, and navigation a bottom bar.
+ */
+export function Shell({
+  children,
+  statusBar,
+  sidebar,
+  rightPanel,
+  rightPanelLabel = "Details",
+}: {
+  children: ReactNode;
+  statusBar: ReactNode;
+  /** Shown under the navigation in the sidebar: the worker list. */
+  sidebar?: ReactNode;
+  /** The panel on the right (preview, inspector); the top bar gets a button for it. */
+  rightPanel?: ReactNode;
+  rightPanelLabel?: string;
+}) {
+  const drawerId = useId();
+  const rightId = useId();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [rightOpen, setRightOpen] = useState(true);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const close = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDrawerOpen(false);
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [drawerOpen]);
+
   return (
-    <div className="shell">
+    <div className="shell" data-drawer={drawerOpen ? "open" : "closed"} data-right={rightPanel && rightOpen ? "open" : "closed"}>
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <div className="phone-brand">
-        <ProductMark />
-        <span>Astra</span>
-      </div>
-      <nav className="rail" aria-label="Main">
-        <span className="rail-brand" role="img" aria-label="Astra">
+      <header className="topbar">
+        {sidebar && (
+          <button type="button" className="topbar-button topbar-drawer" aria-label="Workers" aria-expanded={drawerOpen} aria-controls={drawerId} onClick={() => setDrawerOpen((open) => !open)}>
+            <PanelLeft size={16} strokeWidth={1.5} aria-hidden="true" />
+          </button>
+        )}
+        <span className="topbar-brand">
           <ProductMark />
+          <span>Astra</span>
         </span>
-        <ul className="rail-items">
+        {rightPanel && (
+          <button type="button" className="topbar-button topbar-right" aria-label={rightPanelLabel} aria-expanded={rightOpen} aria-controls={rightId} onClick={() => setRightOpen((open) => !open)}>
+            <PanelRight size={16} strokeWidth={1.5} aria-hidden="true" />
+          </button>
+        )}
+      </header>
+      <nav className="nav" aria-label="Main">
+        <ul className="nav-items">
           <li>
-            <RailItem label="Board" icon={Columns3} current />
+            <NavItem label="Board" icon={Columns3} current />
           </li>
           <li>
-            <RailItem label="Projects" icon={FolderGit2} />
+            <NavItem label="Projects" icon={FolderGit2} />
           </li>
           <li>
-            <RailItem label="Servers" icon={Server} />
+            <NavItem label="Servers" icon={Server} />
           </li>
-          <li className="rail-settings">
-            <RailItem label="Settings" icon={Settings} />
+          <li className="nav-settings">
+            <NavItem label="Settings" icon={Settings} />
           </li>
         </ul>
       </nav>
-      <main id="main" className="shell-main" tabIndex={-1}>
+      {sidebar && (
+        <>
+          <button type="button" className="drawer-scrim" tabIndex={-1} aria-hidden="true" onClick={() => setDrawerOpen(false)} />
+          <aside id={drawerId} className="panel sidebar" aria-label="Workers" onClick={(e) => e.target instanceof Element && e.target.closest("a") && setDrawerOpen(false)}>
+            {sidebar}
+          </aside>
+        </>
+      )}
+      <main id="main" className="panel shell-main" tabIndex={-1}>
         {children}
       </main>
+      {rightPanel && (
+        <aside id={rightId} className="panel right-panel" aria-label={rightPanelLabel} hidden={!rightOpen}>
+          {rightPanel}
+        </aside>
+      )}
       <footer className="status-bar">{statusBar}</footer>
     </div>
   );
