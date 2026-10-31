@@ -17,8 +17,9 @@ import (
 const maxBody = 1 << 20
 
 var (
-	errNoRoute = errors.New("no such route")
-	errBadBody = errors.New("the request body is not valid for this route")
+	errNoRoute  = errors.New("no such route")
+	errBadBody  = errors.New("the request body is not valid for this route")
+	errBadQuery = errors.New("the query is not valid for this route")
 )
 
 // problem is how a failed request is answered.
@@ -42,7 +43,7 @@ func classify(err error) (problem, bool) {
 		return problem{http.StatusConflict, "no_session", "the worker's agent is not running"}, false
 	case errors.Is(err, workspace.ErrClone):
 		return problem{http.StatusUnprocessableEntity, "clone_failed", gitMessage(err)}, false
-	case errors.Is(err, workspace.ErrInvalid), errors.Is(err, agent.ErrInvalid), errors.Is(err, auth.ErrInvalid), errors.Is(err, errBadBody):
+	case errors.Is(err, workspace.ErrInvalid), errors.Is(err, agent.ErrInvalid), errors.Is(err, auth.ErrInvalid), errors.Is(err, errBadBody), errors.Is(err, errBadQuery):
 		return problem{http.StatusBadRequest, "invalid", err.Error()}, false
 	}
 	return problem{http.StatusInternalServerError, "internal", "internal error"}, true
