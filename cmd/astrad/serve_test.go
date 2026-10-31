@@ -264,3 +264,24 @@ func TestOnlyLoopbackAddressesAreServedUnlessRemoteIsAllowed(t *testing.T) {
 		t.Errorf("splitList = %q", got)
 	}
 }
+
+func TestMaxWorkersReadsTheEnvironment(t *testing.T) {
+	cases := []struct {
+		in      string
+		want    int
+		wantErr bool
+	}{
+		{"", defaultMaxWorkers, false},
+		{"  ", defaultMaxWorkers, false},
+		{"6", 6, false},
+		{"0", 0, false}, // no limit
+		{"-1", 0, true},
+		{"many", 0, true},
+	}
+	for _, c := range cases {
+		got, err := maxWorkers(c.in)
+		if (err != nil) != c.wantErr || (err == nil && got != c.want) {
+			t.Errorf("maxWorkers(%q) = %d, %v; want %d, error %v", c.in, got, err, c.want, c.wantErr)
+		}
+	}
+}
