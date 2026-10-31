@@ -489,6 +489,7 @@ Satu nama untuk satu kondisi, dipakai sama di kartu, judul, toast, dan notifikas
 
 | Kondisi (fakta) | Label (EN) | Label (ID) | Tanda |
 | --- | --- | --- | --- |
+| Server sudah menjalankan sebanyak worker yang diizinkan; menunggu slot kosong (F10-05) | Queued | Antre | Pill neutral + "Waiting for a free slot" |
 | Agent sedang menulis atau menjalankan perintah | Working | Sedang bekerja | Titik `--accent` dengan pulse |
 | Agent menunggu input atau approval | Needs you | Butuh kamu | Pill warning |
 | Preview hidup | Preview live | Preview aktif | Pill neutral + link |
