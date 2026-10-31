@@ -61,7 +61,7 @@ Halaman marketing atau landing page **bukan** layar aplikasi. Untuk itu pakai al
 | Emoji di UI, nav, label, atau state kosong | Kata-kata |
 | Header tabel kapital dengan letter-spacing, zebra, band header | Header 12px abu-abu sentence case |
 | Angka rata kiri atau proporsional di kolom | Rata kanan, tabular figures |
-| Label kecil kapital di atas judul (eyebrow), pill di atas judul | Informasinya masuk ke judul atau dihapus |
+| Label kecil kapital di atas judul (eyebrow), pill di atas judul (kecuali label bagian, lihat di bawah) | Informasinya masuk ke judul atau dihapus |
 | Monospace untuk angka, label, atau meta | Plus Jakarta Sans dengan tabular figures; mono sistem hanya untuk terminal, kode, SHA, branch, path, port, ID |
 | Font di luar tiga opsi user (Plus Jakarta Sans, SF Pro Display, sans-serif) dan monospace sistem | Tidak ada pengecualian tanpa ADR |
 | Komponen yang memaksa font tertentu (selain mono) | Selalu `var(--font-sans)`, agar pilihan user berlaku di seluruh tampilan |
@@ -81,6 +81,7 @@ Halaman marketing atau landing page **bukan** layar aplikasi. Untuk itu pakai al
 | Garis antarbaris | 1px `--rule` |
 | Garis putus-putus | Hanya di grid chart, slot kosong, dan tahap yang dilewati di loop strip |
 | Label kecil di atas nilai | 12px, sentence case, `--muted` |
+| Label bagian kapital berjarak | 11px (`--fs-label`), `--muted`, hanya sebagai judul grup di Settings dan sidebar (ADR 0009); bukan eyebrow di atas judul layar |
 | Pill | Hanya di dalam baris atau di samping nilai, tinggi 20px |
 | Monospace | Sesuai daftar di atas |
 | Shadow | Menu, popover, tooltip, dialog, command palette, toast |
@@ -97,7 +98,7 @@ Setiap layar punya satu pertanyaan dan satu aksi utama. Aksi yang paling sering 
 | Detail worker | Sampai mana task ini, dan apa langkah berikutnya? | Sesuai tahap: Share preview, Ship, View failed check, Reply |
 | Overview project | Apakah production klien ini sehat, dan versi mana yang live? | Ship (bila ada yang siap) atau View logs (bila gagal) |
 | Servers | Server mana yang penuh atau tidak tersambung? | Add server |
-| Settings | Apa yang perlu saya atur atau perbaiki? | Save (per section) |
+| Settings | Apa yang perlu saya atur atau perbaiki? | Toggle dan select berlaku langsung dengan toast; Save hanya untuk form multi-kolom |
 | Overlay klien | Bagaimana saya memberi masukan? | Leave feedback |
 
 Tambahan:
@@ -248,3 +249,7 @@ Dipakai saat QA manual. Semua harus "ya".
 - [ ] Screenshot ketiga lebar sudah dilihat sendiri, bukan hanya hasil inspektur.
 - [ ] Aksi berisiko punya konfirmasi atau undo sesuai §7.2.
 - [ ] Copy memakai kata kerja yang menyebut hasil, dan nama aksi konsisten di seluruh alur.
+- [ ] Teks bantuan sesuai perilaku sebenarnya (tidak usang setelah fitur berubah).
+- [ ] Setiap pekerjaan latar (build, spec, Wiki) punya estimasi biaya, progres, dan tombol Batalkan yang terlihat.
+- [ ] Teks di atas `--active` hanya `--text` atau `--muted`; status lewat pill (DESIGN_SYSTEM.md §2.2).
+- [ ] Shell tetap bisa dipakai di 390px (sidebar menjadi drawer, navigasi menjadi bottom bar).
