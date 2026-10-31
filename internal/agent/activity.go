@@ -16,6 +16,8 @@ func ActivityAfter(cur domain.Activity, e Event) domain.Activity {
 		return domain.ActivityIdle
 	case KindPrompt, KindMessage, KindCommand, KindTool, KindFile:
 		return domain.ActivityWorking
+	case KindUsage:
+		// Tokens say nothing about what the agent is doing.
 	}
 	return cur
 }
