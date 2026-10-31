@@ -16,7 +16,8 @@ Pemilik produk dan QA: Maulana Alfara Salim. Implementasi: Claude Code.
 | `docs/vm-testing.md` | Membuat dan memakai VM Linux di Mac untuk uji yang butuh Linux (`scripts/vm/`) | Sebelum menjalankan uji S3, systemd, atau cgroups |
 | `docs/m1-plan.md` | Potongan kerja M1, requirement-nya, dan keputusan yang masih terbuka | Sebelum mengerjakan potongan M1 berikutnya |
 | `docs/monorepo.md` | Tiga modul Go (root, `desktop/`, `tools/`) dan `web/`, `replace` desktop, `go.work`, pemeriksaan per modul | Sebelum menyentuh `desktop/`, `tools/`, atau `go.mod` mana pun |
-| `docs/adr/` | Keputusan arsitektur: 0001 frontend, 0002 toolchain Go, 0003 spike S1 (sesi PTY), 0004 spike S2 (event dari transcript), 0005 spike S3 dan systemd (isolasi agent, umur sesi), 0006 API daemon, pairing, dan WebSocket, 0007 onboarding dan pemasangan server | Saat keputusan terkait berubah |
+| `docs/adr/` | Keputusan arsitektur: 0001 frontend, 0002 toolchain Go, 0003 spike S1 (sesi PTY), 0004 spike S2 (event dari transcript), 0005 spike S3 dan systemd (isolasi agent, umur sesi), 0006 API daemon, pairing, dan WebSocket, 0007 onboarding dan pemasangan server, 0008 arah produk setara Sokudo, 0009 shell dan token design system | Saat keputusan terkait berubah |
+| `docs/sokudo-observation/` | Catatan pengamatan Sokudo A1–A8 (`00`–`90`) dan daftar gap `99-ringkasan-gap.md`; tangkapan layarnya hanya lokal (`.gitignore`) | Sebelum mengerjakan fitur yang meniru Sokudo (ADR 0008) |
 
 Urutan prioritas saat bertentangan: permintaan eksplisit pemilik produk → `DESIGN_RULES.md` → `DESIGN_SYSTEM.md` → default skill.
 
