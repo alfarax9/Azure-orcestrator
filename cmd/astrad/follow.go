@@ -23,7 +23,15 @@ const (
 func followers() map[string]pty.Follower {
 	return map[string]pty.Follower{
 		"claude": transcriptFollower(agent.ParseClaude, agent.FindClaudeTranscript),
-		"codex":  transcriptFollower(agent.ParseCodex, agent.FindCodexRollout),
+		"codex":  codexFollower(),
+	}
+}
+
+// codexFollower reads one rollout with a parser of its own, because the parser remembers the
+// model across lines.
+func codexFollower() pty.Follower {
+	return func(ctx context.Context, dir string, emit func([]byte)) error {
+		return transcriptFollower(agent.NewCodexParser(), agent.FindCodexRollout)(ctx, dir, emit)
 	}
 }
 
