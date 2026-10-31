@@ -51,6 +51,7 @@ type Store interface {
 	Worker(ctx context.Context, id domain.WorkerID) (domain.Worker, error)
 	UpdateWorker(ctx context.Context, id domain.WorkerID, change func(*domain.Worker)) (domain.Worker, error)
 	WorkspaceOf(ctx context.Context, project domain.ProjectID) (domain.Workspace, error)
+	RecordUsage(ctx context.Context, id domain.WorkerID, at time.Time, u domain.Usage) error
 }
 
 // Diffs brings a worker's added and removed line counts up to date.
@@ -87,11 +88,15 @@ type Service struct {
 
 	mu     sync.Mutex // guards screens
 	screen map[domain.WorkerID]*needsDetector
+
+	slots  sync.Mutex // guards limit and active
+	limit  int
+	active map[domain.WorkerID]struct{} // workers whose session runs
 }
 
 // New returns a Service. diffs may be nil.
 func New(s Sessions, st Store, d Diffs, now func() time.Time) *Service {
-	return &Service{sessions: s, store: st, diffs: d, pause: pastePause, now: now, screen: map[domain.WorkerID]*needsDetector{}}
+	return &Service{sessions: s, store: st, diffs: d, pause: pastePause, now: now, screen: map[domain.WorkerID]*needsDetector{}, active: map[domain.WorkerID]struct{}{}}
 }
 
 // target finds the workspace and session of a worker.
@@ -106,7 +111,8 @@ func (s *Service) target(ctx context.Context, id domain.WorkerID) (domain.Worker
 
 // Start runs the worker's agent in its worktree. The task is not typed for the person: the
 // agent first asks whether to trust the folder, and Enter would answer yes. The worker waits
-// as "Needs you" until the person has answered, then gets its task through Send.
+// as "Needs you" until the person has answered, then gets its task through Send. When the
+// server already runs as many workers as it may, the worker is queued and ErrQueued returned.
 func (s *Service) Start(ctx context.Context, id domain.WorkerID) error {
 	w, slug, err := s.target(ctx, id)
 	if err != nil {
@@ -115,10 +121,18 @@ func (s *Service) Start(ctx context.Context, id domain.WorkerID) error {
 	if w.Worktree == "" {
 		return fmt.Errorf("worker %s has no worktree", id)
 	}
+	if !s.reserve(id) {
+		if err := s.queue(ctx, id); err != nil {
+			return err
+		}
+		return fmt.Errorf("worker %s: %w", id, ErrQueued)
+	}
 	if err := s.sessions.Start(ctx, SessionSpec{Slug: slug, ID: string(id), Agent: w.Agent, Dir: w.Worktree}); err != nil {
+		s.release(id)
 		return fmt.Errorf("start the agent of worker %s: %w", id, err)
 	}
-	return s.setActivity(ctx, id, domain.ActivityIdle)
+	_, err = s.store.UpdateWorker(ctx, id, func(w *domain.Worker) { w.Queued, w.Activity = false, domain.ActivityIdle })
+	return err
 }
 
 // Watch follows the worker's session and keeps its facts true until the agent exits (its
@@ -133,6 +147,8 @@ func (s *Service) Watch(ctx context.Context, id domain.WorkerID) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	s.hold(id)
+	defer s.release(id)
 	var closers sync.WaitGroup
 	done := make(chan struct{})
 	closers.Go(func() {
@@ -174,6 +190,9 @@ func (wt *watcher) apply(ctx context.Context, sig Signal) (exited bool, code int
 	switch {
 	case sig.Exited:
 		return true, sig.ExitCode, s.setActivity(context.WithoutCancel(ctx), wt.id, domain.ActivityIdle)
+	case sig.Event != nil && sig.Event.Kind == KindUsage:
+		// Tokens are bookkeeping: the agent has not moved on, so the activity and screen stay.
+		return false, 0, s.recordUsage(ctx, wt.id, *sig.Event)
 	case sig.Event != nil:
 		s.screenOf(wt.id).Reset() // the agent moved on, so any question was answered
 		next = ActivityAfter(wt.cur, *sig.Event)
@@ -186,6 +205,19 @@ func (wt *watcher) apply(ctx context.Context, sig Signal) (exited bool, code int
 	}
 	wt.cur = next
 	return false, 0, s.setActivity(ctx, wt.id, next)
+}
+
+// recordUsage stores the tokens a usage event reports. After a daemon restart the host replays
+// its events, so the same message arrives again and replaces its own row.
+func (s *Service) recordUsage(ctx context.Context, id domain.WorkerID, e Event) error {
+	if e.Usage == nil {
+		return nil
+	}
+	at := e.At
+	if at.IsZero() {
+		at = s.now()
+	}
+	return s.store.RecordUsage(ctx, id, at, *e.Usage)
 }
 
 // Open attaches to the worker's running session, for the terminal or for watching it. A
@@ -303,13 +335,18 @@ func (s *Service) typeInto(ctx context.Context, id domain.WorkerID, after domain
 }
 
 // Stop ends the worker's session and everything the agent started in it.
+// A queued worker has no session: it only leaves the queue.
 func (s *Service) Stop(ctx context.Context, id domain.WorkerID) error {
-	_, slug, err := s.target(ctx, id)
+	w, slug, err := s.target(ctx, id)
 	if err != nil {
 		return err
 	}
-	if err := s.sessions.Stop(ctx, slug, string(id)); err != nil {
-		return err
+	if !w.Queued {
+		if err := s.sessions.Stop(ctx, slug, string(id)); err != nil {
+			return err
+		}
+		s.release(id)
 	}
-	return s.setActivity(ctx, id, domain.ActivityIdle)
+	_, err = s.store.UpdateWorker(ctx, id, func(w *domain.Worker) { w.Queued, w.Activity = false, domain.ActivityIdle })
+	return err
 }
