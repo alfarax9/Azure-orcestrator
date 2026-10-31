@@ -27,6 +27,8 @@ type fakes struct {
 	workspaces []domain.Workspace
 	projects   []domain.Project
 	workers    []domain.Worker
+	usage      []domain.UsageDay
+	usageSince time.Time // the start of the last usage question
 	listeners  []func(domain.Change)
 	tracked    []domain.WorkerID
 	calls      []string
@@ -194,6 +196,13 @@ func (f *fakes) Workers(context.Context, string) ([]domain.Worker, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return append([]domain.Worker(nil), f.workers...), nil
+}
+
+func (f *fakes) UsageByDay(_ context.Context, since time.Time) ([]domain.UsageDay, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.usageSince = since
+	return f.usage, nil
 }
 
 func (f *fakes) Worker(_ context.Context, id domain.WorkerID) (domain.Worker, error) {
