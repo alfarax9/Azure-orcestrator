@@ -25,6 +25,7 @@ export interface ApiWorker {
   branch: string;
   agent: string;
   createdAt: number;
+  queued?: boolean;
   clientReview: boolean;
   agentActivity: Worker["agentActivity"];
   previewLive: boolean;
@@ -96,6 +97,7 @@ export function toWorker(w: ApiWorker, project: string): Worker {
     branch: w.branch,
     agent: AGENT_LABELS[w.agent] ?? "Claude Code",
     createdAt: w.createdAt,
+    queued: w.queued ?? false,
     clientReview: w.clientReview,
     agentActivity: w.agentActivity,
     previewLive: w.previewLive,
