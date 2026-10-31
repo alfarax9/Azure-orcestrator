@@ -7,6 +7,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/alfarax9/astra/internal/domain"
 )
 
 // Codex writes one JSON object per line to ~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl.
@@ -16,10 +18,22 @@ type codexRecord struct {
 	Timestamp time.Time `json:"timestamp"`
 	Type      string    `json:"type"`
 	Payload   struct {
-		Type string         `json:"type"`
-		Item jsontext.Value `json:"item"`
+		Type  string         `json:"type"`
+		Item  jsontext.Value `json:"item"`
+		Model string         `json:"model"` // turn_context
+		Info  *struct {
+			Total struct {
+				Input       int `json:"input_tokens"`
+				CachedInput int `json:"cached_input_tokens"`
+				Output      int `json:"output_tokens"`
+			} `json:"total_token_usage"`
+		} `json:"info"` // token_count; null when the record only carries rate limits
 	} `json:"payload"`
 }
+
+// codexUsageKey is the key of a Codex session's usage. token_count reports the running total of
+// the whole session, so there is one usage record per session and each report replaces it.
+const codexUsageKey = "session"
 
 type codexItem struct {
 	Type    string `json:"type"`
@@ -37,17 +51,36 @@ type codexChange struct {
 	UnifiedDiff string `json:"unified_diff"`
 }
 
+// codexParser remembers the model a rollout names in its turn_context records, because the
+// token_count records that follow do not repeat it.
+type codexParser struct{ model string }
+
 // ParseCodex turns one line of a Codex rollout into events. Records it does not use
-// (settings, reasoning, token counts) give no events.
+// (settings, reasoning) give no events. It does not know the model of the usage it reports;
+// NewCodexParser does.
 func ParseCodex(line []byte) ([]Event, error) {
+	return (&codexParser{}).parse(line)
+}
+
+// NewCodexParser returns a Parser for one rollout that also names the model on usage events.
+func NewCodexParser() Parser {
+	return (&codexParser{}).parse
+}
+
+func (p *codexParser) parse(line []byte) ([]Event, error) {
 	var r codexRecord
 	if err := json.Unmarshal(line, &r); err != nil {
 		return nil, fmt.Errorf("codex rollout line: %w", err)
+	}
+	if r.Type == "turn_context" && r.Payload.Model != "" {
+		p.model = r.Payload.Model
 	}
 	if r.Type != "event_msg" {
 		return nil, nil
 	}
 	switch r.Payload.Type {
+	case "token_count":
+		return p.usage(r), nil
 	case "task_complete":
 		return []Event{{At: r.Timestamp, Kind: KindTurnEnd}}, nil
 	case "item_completed":
@@ -58,6 +91,23 @@ func ParseCodex(line []byte) ([]Event, error) {
 		return codexItemEvents(r.Timestamp, item), nil
 	}
 	return nil, nil
+}
+
+// usage reports the session total. Codex counts cached tokens inside input_tokens, so they are
+// taken out to keep Input free of the cache, as it is for Claude Code.
+func (p *codexParser) usage(r codexRecord) []Event {
+	if r.Payload.Info == nil {
+		return nil
+	}
+	t := r.Payload.Info.Total
+	u := domain.Usage{
+		Key: codexUsageKey, Model: p.model, InputTokens: max(t.Input-t.CachedInput, 0),
+		OutputTokens: t.Output, CacheReadTokens: t.CachedInput,
+	}
+	if u.Empty() {
+		return nil
+	}
+	return []Event{{At: r.Timestamp, Kind: KindUsage, Usage: &u}}
 }
 
 func codexItemEvents(at time.Time, item codexItem) []Event {
