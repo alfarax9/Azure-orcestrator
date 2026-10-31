@@ -1,5 +1,32 @@
 [
   {
+    "name": "a worker waiting for a free slot",
+    "facts": {
+      "queued": true,
+      "clientReview": true,
+      "agentActivity": "working",
+      "previewLive": false,
+      "shared": false,
+      "newFeedback": 0,
+      "gate": {
+        "state": "none"
+      },
+      "deployment": {
+        "state": "none"
+      }
+    },
+    "status": "queued",
+    "stages": [
+      "done",
+      "pending",
+      "pending",
+      "pending",
+      "pending",
+      "pending",
+      "pending"
+    ]
+  },
+  {
     "name": "a fresh worker waits for the next message",
     "facts": {
       "clientReview": true,
