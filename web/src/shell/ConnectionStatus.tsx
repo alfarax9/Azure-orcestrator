@@ -24,7 +24,6 @@ export function ConnectionStatus({ state }: { state: ConnectionState }) {
   const working = Object.values(statuses).filter((s) => s === "working").length;
   return (
     <>
-      <span className="status-bar-brand">Astra</span>
       <span role="status">{connectionText(state)}</span>
       <span>{working} working</span>
     </>
