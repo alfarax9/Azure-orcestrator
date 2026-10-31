@@ -11,14 +11,14 @@ import (
 )
 
 const workerColumns = `id, project_id, title, agent, branch, worktree, client_review, created_at,
-	activity, preview_live, shared, new_feedback, gate_state, gate_cause, deploy_state, deploy_reason, added, removed`
+	activity, preview_live, shared, new_feedback, gate_state, gate_cause, deploy_state, deploy_reason, added, removed, queued`
 
 func scanWorker(r scanner) (domain.Worker, error) {
 	var w domain.Worker
 	var created int64
 	err := r.Scan(&w.ID, &w.ProjectID, &w.Title, &w.Agent, &w.Branch, &w.Worktree, &w.ClientReview, &created,
 		&w.Activity, &w.PreviewLive, &w.Shared, &w.NewFeedback, &w.Gate.State, &w.Gate.Cause,
-		&w.Deployment.State, &w.Deployment.Reason, &w.Added, &w.Removed)
+		&w.Deployment.State, &w.Deployment.Reason, &w.Added, &w.Removed, &w.Queued)
 	w.CreatedAt = domain.Timestamp{Time: time.UnixMilli(created)}
 	return w, err
 }
@@ -26,10 +26,10 @@ func scanWorker(r scanner) (domain.Worker, error) {
 // CreateWorker stores w. An unknown project gives domain.ErrConflict.
 func (s *Store) CreateWorker(ctx context.Context, w domain.Worker) error {
 	_, err := s.db.ExecContext(ctx, `INSERT INTO workers (`+workerColumns+`, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		w.ID, w.ProjectID, w.Title, w.Agent, w.Branch, w.Worktree, w.ClientReview, w.CreatedAt.UnixMilli(),
 		w.Activity, w.PreviewLive, w.Shared, w.NewFeedback, w.Gate.State, w.Gate.Cause,
-		w.Deployment.State, w.Deployment.Reason, w.Added, w.Removed, s.now().UnixMilli())
+		w.Deployment.State, w.Deployment.Reason, w.Added, w.Removed, w.Queued, s.now().UnixMilli())
 	if err == nil {
 		s.publish(domain.Change{Worker: &w})
 	}
@@ -88,9 +88,9 @@ func (s *Store) UpdateWorker(ctx context.Context, id domain.WorkerID, change fun
 
 	_, err = tx.ExecContext(ctx, `UPDATE workers SET title = ?, branch = ?, worktree = ?, client_review = ?,
 		activity = ?, preview_live = ?, shared = ?, new_feedback = ?, gate_state = ?, gate_cause = ?,
-		deploy_state = ?, deploy_reason = ?, added = ?, removed = ?, updated_at = ? WHERE id = ?`,
+		deploy_state = ?, deploy_reason = ?, added = ?, removed = ?, queued = ?, updated_at = ? WHERE id = ?`,
 		w.Title, w.Branch, w.Worktree, w.ClientReview, w.Activity, w.PreviewLive, w.Shared, w.NewFeedback,
-		w.Gate.State, w.Gate.Cause, w.Deployment.State, w.Deployment.Reason, w.Added, w.Removed,
+		w.Gate.State, w.Gate.Cause, w.Deployment.State, w.Deployment.Reason, w.Added, w.Removed, w.Queued,
 		s.now().UnixMilli(), id)
 	if err != nil {
 		return w, wrap("update worker "+string(id), err)
