@@ -1,6 +1,6 @@
 # A1. Peta navigasi dan shell Sokudo
 
-Pengamatan Sokudo 0.19.6 (macOS) pada 2026-10-30, lewat computer use, hanya di jendela Sokudo. Workspace yang terbuka: `test soduko` (milik pemilik produk, kosong: tanpa repo git, tanpa agent, tanpa CLI tersambung). Tidak ada item yang dibuat, diubah, atau dihapus.
+Pengamatan Sokudo 0.19.6 (macOS) pada 2026-10-30, lewat computer use, hanya di jendela Sokudo. Workspace yang terbuka: `test soduko` (milik pemilik produk). Saat A1 workspace itu masih kosong (tanpa repo git, agent, atau CLI tersambung). Pada 2026-10-31 pemilik produk mulai memakainya (chat dan satu agent berjalan), jadi pengamatan A1 menggambarkan keadaan kosong. Tidak ada item yang dibuat, diubah, atau dihapus oleh pengamatan ini.
 
 Tanda:
 - **[terlihat langsung]**: tampak di layar atau di pohon aksesibilitas.
@@ -13,7 +13,7 @@ Bukti berupa nama berkas di `docs/sokudo-observation/screens/`. Folder itu tidak
 - **[terlihat langsung]** Satu jendela utama berjudul "Sokudo", 1512×949 pt, mengisi layar di bawah menu bar. Tidak ada title bar atau tombol lampu lalu lintas yang terlihat; bilah atas aplikasi langsung menempel di bawah menu bar macOS. Bukti: `a1-shell-fullsize-1512.jpg`.
 - **[terlihat langsung]** Seluruh isi jendela adalah satu web view (AXWebArea). Ini sesuai dengan stack Tauri.
 - **[terlihat langsung]** Tema yang aktif gelap: latar jendela hampir hitam, panel abu-abu sangat gelap dengan sudut membulat.
-- **[inferensi]** Ukuran minimum jendela **belum terukur**. Seret di tepi layar memilih teks, bukan mengubah ukuran (jendela menempel di tepi layar). Memindahkan jendela ditolak karena titik seret dianggap area desktop, yang butuh akses Finder, sedangkan batas akses hanya Sokudo. Lihat Butir terbuka.
+- **[terlihat langsung]** Ukuran minimum jendela: **tidak ada**. Saya sendiri tidak bisa mengubah ukuran (seret di tepi layar memilih teks; memindahkan jendela butuh akses Finder), tapi pemilik produk mengecilkannya dan ukuran terbaca 105×280 pt. Lihat Butir terbuka 1.
 - **[terlihat langsung]** Window → Zoom tidak mengubah ukuran (jendela sudah penuh).
 
 ## 2. Menu bar macOS
@@ -218,6 +218,8 @@ Bukti: `a1-command-palette-1.jpg` sampai `-5.jpg`. Tidak ada perintah yang dijal
 
 ## 7. Temuan sambil lalu untuk kelompok berikutnya
 
+Catatan: halaman Settings bagian Workspace (General, Context, Docker, Environment Variables, Remote SSH) sudah dikerjakan lebih rinci di `10-settings-workspace.md`. Butir A2 di bawah dipertahankan hanya sebagai jejak. Halaman Agents, Providers, MCP, dan Token Usage (A3) ada di `20-settings-agents.md`; butir A3 di bawah juga hanya jejak.
+
 Dicatat di sini supaya tidak hilang; diperdalam di kelompok masing-masing.
 
 - **A3, Agents:**
@@ -282,11 +284,7 @@ Dicatat di sini supaya tidak hilang; diperdalam di kelompok masing-masing.
 
 ## Butir terbuka
 
-1. **Ukuran minimum jendela.** Tidak bisa diukur dengan akses Sokudo saja. Pilihannya:
-   - pemilik produk mengecilkan jendela Sokudo sendiri sampai mentok, lalu saya membaca ukurannya; atau
-   - memberi akses Finder sementara untuk menyeret jendela.
-
-   Diusulkan dikerjakan di awal A8.
+1. **Ukuran minimum jendela: tidak ada** (terselesaikan 2026-10-31). Pemilik produk mengecilkan jendela sendiri dan melaporkan tidak ada batas minimum. Saya memverifikasi lewat daftar jendela: ukuran terbaca **105×280 pt**, dan UI tetap dirender (bilah atas, sidebar, dan bilah status terpotong, tanpa tata letak ringkas atau menu hamburger). Bukti: `a1-window-tiny-105x280.jpg`. **[inferensi]** Sokudo tidak menetapkan ukuran minimum jendela, dan tata letaknya tidak berubah menjadi ringkas pada lebar yang kecil. Untuk Astra, web UI harus tetap diuji di 390 pt (`DESIGN_RULES.md`) dan sebaiknya punya tata letak ringkas sendiri.
 2. **Tema terang.** Belum dilihat (tema gelap aktif). Diamati di A4 (Appearance) dan A8.
-3. **Keadaan berisi.** Workspace ini kosong, jadi daftar chat, tab berisi, worker berjalan, dan item Kanban belum terlihat. Keadaan berisi butuh item uji `ATM-TEST-` dan CLI yang tersambung. Keduanya perlu persetujuan sebelum A5.
+3. **Keadaan berisi.** Catatan A1 hanya memuat keadaan kosong. Workspace kini berisi chat dan agent milik pemilik produk, tapi isi percakapannya sengaja tidak dicatat. Tampilan berisi (daftar chat, tab, kartu perubahan file, status agent) diamati di A5 dan A7 dengan item uji `ATM-TEST-` yang perlu persetujuan.
 4. **Popover LSP** masih menempel di pojok kanan bawah Sokudo setelah pengamatan, karena hanya tertutup dengan mengklik item "LSP: Idle" lagi. Tidak mengubah data.
