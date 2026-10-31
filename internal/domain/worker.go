@@ -66,6 +66,10 @@ type Worker struct {
 	CreatedAt Timestamp `json:"createdAt"`
 	Worktree  string    `json:"-"` // path on the server; never sent to clients
 
+	// Queued means the server was already running as many workers as it may, so this one waits
+	// for a free slot (F10-05). Its agent has not started.
+	Queued bool `json:"queued"`
+
 	// ClientReview is false for internal projects: the Client stage is skipped.
 	ClientReview bool           `json:"clientReview"`
 	Activity     Activity       `json:"agentActivity"`
