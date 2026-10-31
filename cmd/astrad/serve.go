@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -53,6 +54,9 @@ func serve(ctx context.Context, log *slog.Logger) error {
 		return err
 	}
 	defer func() { _ = a.store.Close() }()
+	if err := applyLimit(a.ag); err != nil {
+		return err
+	}
 
 	sup := agent.NewSupervisor(a.ag, a.store, log)
 	tracker := trackerFunc(func(id domain.WorkerID) { sup.Track(ctx, id) })
@@ -112,6 +116,31 @@ func checkListen(addr string, allowRemote bool) error {
 		return nil
 	}
 	return errors.New("ASTRA_LISTEN is not a loopback address: the API has no TLS, so put an SSH tunnel or a proxy in front of it, or set ASTRA_ALLOW_REMOTE=1 if one already is")
+}
+
+// defaultMaxWorkers is how many workers run at once when the operator says nothing: enough for
+// parallel work on the smallest server the PRD names, and few enough to leave room for builds.
+const defaultMaxWorkers = 4
+
+// applyLimit sets how many workers may run at once from ASTRA_MAX_WORKERS.
+func applyLimit(svc *agent.Service) error {
+	n, err := maxWorkers(os.Getenv("ASTRA_MAX_WORKERS"))
+	if err == nil {
+		svc.SetLimit(n)
+	}
+	return err
+}
+
+// maxWorkers reads ASTRA_MAX_WORKERS: a whole number, where 0 means no limit (F10-05).
+func maxWorkers(value string) (int, error) {
+	if strings.TrimSpace(value) == "" {
+		return defaultMaxWorkers, nil
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(value))
+	if err != nil || n < 0 {
+		return 0, fmt.Errorf("ASTRA_MAX_WORKERS %q is not a whole number of 0 or more (0 means no limit)", value)
+	}
+	return n, nil
 }
 
 func splitList(s string) []string {
