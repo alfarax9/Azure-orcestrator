@@ -6,6 +6,7 @@ type Status string
 
 // The status vocabulary.
 const (
+	StatusQueued          Status = "queued"
 	StatusWorking         Status = "working"
 	StatusNeedsYou        Status = "needs_you"
 	StatusPreviewLive     Status = "preview_live"
@@ -21,6 +22,8 @@ const (
 // Label is the English label people read.
 func (s Status) Label() string {
 	switch s {
+	case StatusQueued:
+		return "Queued"
 	case StatusWorking:
 		return "Working"
 	case StatusNeedsYou:
@@ -58,6 +61,9 @@ func (s Status) NeedsAttention() bool {
 // Status derives the worker's status from its facts. Later stages win: a deployment
 // outranks an old gate result, and a running agent outranks a result it is about to replace.
 func (w Worker) Status() Status {
+	if w.Queued {
+		return StatusQueued // not started: nothing else is true of it yet
+	}
 	switch w.Deployment.State {
 	case DeployRolledBack:
 		return StatusRolledBack
