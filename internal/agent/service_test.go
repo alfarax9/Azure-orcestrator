@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/fs"
 	"log/slog"
+	"slices"
 	"strings"
 	"sync"
 	"syscall"
@@ -87,6 +88,7 @@ type memStore struct {
 	mu      sync.Mutex
 	worker  domain.Worker
 	history []domain.Activity
+	usage   map[string]domain.Usage // by key, as the store keeps it
 }
 
 func (m *memStore) Worker(_ context.Context, id domain.WorkerID) (domain.Worker, error) {
@@ -106,6 +108,16 @@ func (m *memStore) UpdateWorker(_ context.Context, _ domain.WorkerID, change fun
 
 func (m *memStore) WorkspaceOf(context.Context, domain.ProjectID) (domain.Workspace, error) {
 	return domain.Workspace{Slug: "acme"}, nil
+}
+
+func (m *memStore) RecordUsage(_ context.Context, _ domain.WorkerID, _ time.Time, u domain.Usage) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.usage == nil {
+		m.usage = map[string]domain.Usage{}
+	}
+	m.usage[u.Key] = u
+	return nil
 }
 
 type countDiffs struct{ n int }
@@ -151,6 +163,9 @@ func TestActivityFollowsTheAgentsEvents(t *testing.T) {
 		{domain.ActivityWorking, KindTurnEnd, domain.ActivityIdle},
 		{domain.ActivityNeedsInput, KindMessage, domain.ActivityWorking},
 		{domain.ActivityNeedsInput, "unknown", domain.ActivityNeedsInput},
+		{domain.ActivityWorking, KindUsage, domain.ActivityWorking},
+		{domain.ActivityIdle, KindUsage, domain.ActivityIdle},
+		{domain.ActivityNeedsInput, KindUsage, domain.ActivityNeedsInput},
 	} {
 		if got := ActivityAfter(c.cur, Event{Kind: c.kind}); got != c.want {
 			t.Errorf("%s then %s = %s, want %s", c.cur, c.kind, got, c.want)
@@ -207,6 +222,30 @@ func TestWatchKeepsActivityTrueFromTheSession(t *testing.T) {
 	}
 	if f.diffs.n != 2 {
 		t.Errorf("diffs counted %d times, want after the file change and the turn end", f.diffs.n)
+	}
+}
+
+func usageSignal(key string, output int) Signal {
+	return Signal{Event: &Event{Kind: KindUsage, Usage: &domain.Usage{Key: key, InputTokens: 10, OutputTokens: output}}}
+}
+
+func TestWatchRecordsUsageWithoutMovingTheActivity(t *testing.T) {
+	f := newFixture(
+		Signal{Output: []byte("Do you trust the files in this folder?")},
+		usageSignal("m1", 5), usageSignal("m1", 40), usageSignal("m2", 7),
+		Signal{Exited: true},
+	)
+	if _, err := f.svc.Watch(t.Context(), f.id()); err != nil {
+		t.Fatal(err)
+	}
+	// m1 was reported twice and keeps its last count: that is how a replay stays idempotent.
+	if got := f.store.usage["m1"].OutputTokens; len(f.store.usage) != 2 || got != 40 {
+		t.Errorf("usage = %+v, want m1 with 40 output tokens and m2", f.store.usage)
+	}
+	// Needs you, then idle at the exit: usage never touched the activity in between.
+	want := []domain.Activity{domain.ActivityNeedsInput, domain.ActivityIdle}
+	if !slices.Equal(f.store.history, want) {
+		t.Errorf("activity history = %v, want %v", f.store.history, want)
 	}
 }
 
