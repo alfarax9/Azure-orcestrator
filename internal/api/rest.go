@@ -1,8 +1,13 @@
 package api
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
+	"strconv"
+	"time"
 
+	"github.com/alfarax9/astra/internal/agent"
 	"github.com/alfarax9/astra/internal/domain"
 )
 
@@ -96,6 +101,29 @@ func (s *Server) getWorker(w http.ResponseWriter, r *http.Request) {
 	respond(s, w, r, http.StatusOK, wk, err)
 }
 
+// Usage is answered for this many days when the client does not ask for a number, and for at
+// most maxUsageDays, so one request cannot sum the whole history.
+const (
+	defaultUsageDays = 30
+	maxUsageDays     = 366
+)
+
+// getUsage answers the tokens agents reported over the last days, per day, agent and model.
+func (s *Server) getUsage(w http.ResponseWriter, r *http.Request) {
+	days := defaultUsageDays
+	if v := r.URL.Query().Get("days"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 || n > maxUsageDays {
+			s.fail(w, r, fmt.Errorf("%w: days must be a whole number from 1 to %d", errBadQuery, maxUsageDays))
+			return
+		}
+		days = n
+	}
+	since := s.cfg.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, 1-days)
+	list, err := s.reads.UsageByDay(r.Context(), since)
+	respond(s, w, r, http.StatusOK, nonNil(list), err)
+}
+
 func (s *Server) newWorker(w http.ResponseWriter, r *http.Request) {
 	var in struct {
 		Title        string           `json:"title"`
@@ -111,16 +139,25 @@ func (s *Server) newWorker(w http.ResponseWriter, r *http.Request) {
 	respond(s, w, r, http.StatusCreated, wk, err)
 }
 
-// startWorker runs the agent and keeps its facts true from then on.
+// startWorker runs the agent and keeps its facts true from then on. When the server already
+// runs as many workers as it may, the worker is queued instead: 202, and it starts by itself
+// when a slot frees up (F10-05).
 func (s *Server) startWorker(w http.ResponseWriter, r *http.Request) {
 	id := domain.WorkerID(r.PathValue("id"))
-	if err := s.agents.Start(r.Context(), id); err != nil {
+	err := s.agents.Start(r.Context(), id)
+	queued := errors.Is(err, agent.ErrQueued)
+	if err != nil && !queued {
 		s.fail(w, r, err)
 		return
 	}
-	s.tracker.Track(id)
+	status := http.StatusOK
+	if queued {
+		status = http.StatusAccepted
+	} else {
+		s.tracker.Track(id)
+	}
 	wk, err := s.reads.Worker(r.Context(), id)
-	respond(s, w, r, http.StatusOK, wk, err)
+	respond(s, w, r, status, wk, err)
 }
 
 func (s *Server) stopWorker(w http.ResponseWriter, r *http.Request) {
