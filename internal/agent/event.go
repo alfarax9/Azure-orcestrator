@@ -4,6 +4,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/alfarax9/astra/internal/domain"
 )
 
 // Kind says what an Event describes.
@@ -17,17 +19,19 @@ const (
 	KindTool    Kind = "tool"     // the agent used another tool, such as reading or searching
 	KindFile    Kind = "file"     // a file was added, changed or deleted
 	KindTurnEnd Kind = "turn_end" // the agent finished its turn and waits for input
+	KindUsage   Kind = "usage"    // the tokens one message used; says nothing about what the agent is doing
 )
 
 // Event is one structured thing an agent did, as recorded in its transcript.
 type Event struct {
-	At       time.Time   `json:"at"`
-	Kind     Kind        `json:"kind"`
-	Text     string      `json:"text,omitempty"`   // prompt, message or command line
-	Tool     string      `json:"tool,omitempty"`   // tool name, for KindTool
-	Target   string      `json:"target,omitempty"` // what the tool worked on: a file, pattern or URL
-	ExitCode *int        `json:"exit_code,omitempty"`
-	File     *FileChange `json:"file,omitempty"`
+	At       time.Time     `json:"at"`
+	Kind     Kind          `json:"kind"`
+	Text     string        `json:"text,omitempty"`   // prompt, message or command line
+	Tool     string        `json:"tool,omitempty"`   // tool name, for KindTool
+	Target   string        `json:"target,omitempty"` // what the tool worked on: a file, pattern or URL
+	ExitCode *int          `json:"exit_code,omitempty"`
+	File     *FileChange   `json:"file,omitempty"`
+	Usage    *domain.Usage `json:"usage,omitempty"`
 }
 
 // FileChange is one file an agent added, updated or deleted, with its diff.
