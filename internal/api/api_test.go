@@ -50,7 +50,7 @@ func TestVersionIsPublicAndEverythingElseNeedsADevice(t *testing.T) {
 	}
 	for _, route := range []string{
 		"GET /api/v1/workspaces", "GET /api/v1/checklist", "POST /api/v1/workspaces", "GET /api/v1/projects?workspace=x", "POST /api/v1/projects",
-		"PUT /api/v1/projects/p/commands", "GET /api/v1/workers", "GET /api/v1/workers/w", "POST /api/v1/projects/p/workers",
+		"PUT /api/v1/projects/p/commands", "GET /api/v1/workers", "GET /api/v1/workers/w", "GET /api/v1/usage", "POST /api/v1/projects/p/workers",
 		"POST /api/v1/workers/w/start", "POST /api/v1/workers/w/stop", "POST /api/v1/workers/w/interrupt",
 		"POST /api/v1/workers/w/messages", "GET /api/v1/events", "GET /api/v1/sessions/w/pty",
 	} {
