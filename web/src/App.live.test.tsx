@@ -118,7 +118,8 @@ test("when the daemon drops, the data stays with its age and New task waits; a r
   answers["GET /api/v1/workspaces"] = new Response(null, { status: 502 });
   await act(async () => FakeWebSocket.all[0]?.onclose?.());
   expect(screen.getByText(/Offline · last updated/)).toBeTruthy();
-  expect(screen.getByText("Task a")).toBeTruthy();
+  expect(within(screen.getByRole("main")).getByText("Task a")).toBeTruthy();
+  expect(within(screen.getByRole("complementary", { name: "Workers" })).getByText("Task a")).toBeTruthy(); // the sidebar lists it too
   expect(screen.getByRole("button", { name: "New task" }).hasAttribute("disabled")).toBe(true);
 
   answers["GET /api/v1/workspaces"] = new Response(JSON.stringify({ error: { code: "unauthorized", message: "x" } }), { status: 401 });
