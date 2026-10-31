@@ -82,6 +82,18 @@
     "exit_code": 0
   },
   {
+    "at": "2026-10-26T07:00:05.5Z",
+    "kind": "usage",
+    "usage": {
+      "key": "session",
+      "model": "gpt-5-codex",
+      "inputTokens": 200,
+      "outputTokens": 340,
+      "cacheReadTokens": 1000,
+      "cacheWriteTokens": 0
+    }
+  },
+  {
     "at": "2026-10-26T07:00:06Z",
     "kind": "message",
     "text": "Rounding fixed; go vet is clean."
