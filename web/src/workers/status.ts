@@ -2,6 +2,7 @@ import type { Worker } from "./types";
 
 // Status vocabulary from DESIGN_SYSTEM.md §10, derived from facts on read (F3-06).
 export type WorkerStatus =
+  | "queued"
   | "working"
   | "needs_you"
   | "preview_live"
@@ -18,6 +19,7 @@ export type BoardColumn = "working" | "needs_you" | "review" | "ready_to_ship" |
 export type StatusMark = "pulse-accent" | "dot-positive" | "pill-warning" | "pill-neutral" | "pill-negative" | "pill-positive";
 
 export const STATUS: Record<WorkerStatus, { label: string; mark: StatusMark; column: BoardColumn }> = {
+  queued: { label: "Queued", mark: "pill-neutral", column: "working" },
   working: { label: "Working", mark: "pulse-accent", column: "working" },
   needs_you: { label: "Needs you", mark: "pill-warning", column: "needs_you" },
   preview_live: { label: "Preview live", mark: "pill-neutral", column: "review" },
@@ -42,6 +44,7 @@ export const COLUMNS: { id: BoardColumn; label: string }[] = [
 
 /** Later stages win: a live deployment outranks an old gate result, and so on. */
 export function deriveStatus(w: Worker): WorkerStatus {
+  if (w.queued) return "queued"; // not started: nothing else is true of it yet
   switch (w.deployment.state) {
     case "rolled_back":
       return "rolled_back";
@@ -81,6 +84,7 @@ export function announcement(w: Worker, status: WorkerStatus): string | null {
 export function statusDetail(w: Worker, status: WorkerStatus): string | null {
   if (status === "gate_failed" && w.gate.state === "failed") return w.gate.cause;
   if (status === "rolled_back" && w.deployment.state === "rolled_back") return w.deployment.reason;
+  if (status === "queued") return "Waiting for a free slot";
   if (status === "client_feedback") return w.newFeedback === 1 ? "1 new comment" : `${w.newFeedback} new comments`;
   return null;
 }
