@@ -32,21 +32,21 @@ Aturan perilaku dan larangan ada di `DESIGN_RULES.md`. Kalau keduanya bertentang
 
 | Token | Peran | Gelap | Terang |
 | --- | --- | --- | --- |
-| `--ground` | Latar jendela, rail, dan frame | `#171719` | `#f9fbfc` |
-| `--surface` | Panel, kartu, terminal, tabel | `#131217` | `#ffffff` |
-| `--raised` | Hover baris, isi kontrol sekunder | `#212023` | `#f4f6f8` |
-| `--active` | Baris atau item yang dipilih | `#2a292d` | `#ebedee` |
-| `--border` | Tepi panel dan kartu | `#222224` | `#e8eaec` |
-| `--rule` | Garis antarbaris tabel dan list | `#1b1a1f` | `#f0f1f2` |
-| `--control` | Isi tombol sekunder | `#3a3a3e` | `#cdced1` |
-| `--control-strong` | Border input dan checkbox (≥ 3:1) | `#6b6d73` | `#8f9196` |
-| `--text` | Semua teks utama | `#ffffff` | `#131416` |
-| `--muted` | Label, meta, teks sekunder (≥ 4.5:1) | `#8a8c92` | `#5d5f60` |
+| `--ground` | Latar jendela di belakang panel, bilah atas, dan bilah status | `#060606` | `#edeef0` |
+| `--surface` | Panel shell (sidebar, area utama, panel kanan), dialog, terminal | `#181818` | `#f5f6f7` |
+| `--raised` | Kartu, composer, hover baris, isi kontrol sekunder | `#202020` | `#ffffff` |
+| `--active` | Baris atau item yang dipilih | `#2b2b2b` | `#e3e5e8` |
+| `--border` | Tepi panel dan kartu | `#2a2a2a` | `#dcdee2` |
+| `--rule` | Garis antarbaris tabel dan list | `#222222` | `#e8eaed` |
+| `--control` | Isi tombol sekunder | `#303030` | `#d3d5d9` |
+| `--control-strong` | Border input dan checkbox (≥ 3:1 di surface dan raised) | `#6e6e6e` | `#8a8c91` |
+| `--text` | Semua teks utama | `#ffffff` | `#16161a` |
+| `--muted` | Label, meta, teks sekunder (≥ 4.5:1) | `#9a9a9a` | `#5b5d62` |
 | `--accent` | Seleksi (garis 1–2px), link, elemen data utama, focus ring | `#4a8ad6` | `#1d5fbf` |
 | `--positive` | Live, sehat, gate lulus | `#44a282` | `#1e7b4f` |
 | `--negative` | Gagal, error, rollback paksa | `#e5566f` | `#c4242a` |
 | `--warning` | Butuh kamu, mendekati limit | `#d9a441` | `#92400e` |
-| `--primary-bg` / `--primary-ink` | Tombol utama | `#f2f2f3` / `#171719` | `#131416` / `#ffffff` |
+| `--primary-bg` / `--primary-ink` | Tombol utama | `#f2f2f3` / `#171719` | `#16161a` / `#ffffff` |
 | `--scrim` | Latar di belakang dialog | `rgba(0,0,0,.6)` | `rgba(19,20,22,.4)` |
 
 **Pill status** (latar pucat + tinta dengan hue yang sama):
@@ -56,21 +56,29 @@ Aturan perilaku dan larangan ada di `DESIGN_RULES.md`. Kalau keduanya bertentang
 | `--pill-positive` | `#1b2828` / `#5fc39c` | `#dcfae5` / `#04250e` |
 | `--pill-negative` | `#2c1a20` / `#e5566f` | `#ffedea` / `#831c1e` |
 | `--pill-warning` | `#2a2416` / `#d9a441` | `#fffbeb` / `#92400e` |
-| `--pill-neutral` | `#212023` / `#bdbdc0` | `#ebedee` / `#353736` |
+| `--pill-neutral` | `#202020` / `#bdbdc0` | `#e3e5e8` / `#353736` |
 
 ### 2.2 Kontras yang sudah diverifikasi
 
+Dihitung ulang 2026-10-31 untuk ADR 0009 (rasio WCAG).
+
 | Pasangan | Gelap | Terang |
 | --- | --- | --- |
-| `--text` di `--surface` | 18.6:1 | 18.4:1 |
-| `--muted` di `--surface` | 5.6:1 | 6.4:1 |
-| `--muted` di `--raised` | 4.8:1 | — |
-| `--accent` di `--ground` | 5.0:1 | 5.9:1 |
-| `--positive` di `--surface` | 6.0:1 | 5.3:1 |
-| `--negative` di `--surface` | 5.2:1 | 5.8:1 |
-| `--warning` di `--surface` | 8.3:1 | 7.1:1 |
-| `--control-strong` di `--surface` | 3.6:1 | 3.2:1 |
+| `--text` di `--surface` | 17.8:1 | 16.7:1 |
+| `--text` di `--raised` | 16.3:1 | 18.0:1 |
+| `--muted` di `--surface` | 6.3:1 | 6.1:1 |
+| `--muted` di `--raised` | 5.8:1 | 6.6:1 |
+| `--muted` di `--active` | 5.0:1 | 5.2:1 |
+| `--accent` di `--surface` | 5.0:1 | 5.6:1 |
+| `--accent` di `--raised` | 4.6:1 | 6.1:1 |
+| `--positive` di `--surface` | 5.7:1 | 4.9:1 |
+| `--negative` di `--surface` | 5.0:1 | 5.3:1 |
+| `--warning` di `--surface` | 7.9:1 | 6.6:1 |
+| `--control-strong` di `--surface` | 3.5:1 | 3.1:1 |
+| `--control-strong` di `--raised` | 3.2:1 | 3.4:1 |
 | Pill negatif (ink di bg) | 4.6:1 | 8.6:1 |
+
+**Batas pada `--active`:** di atas `--active`, `--accent` dan `--negative` sebagai teks hanya 4.0:1 (gelap), dan `--control-strong` 2.8:1 (gelap) dan 2.7:1 (terang). Di atas `--active` hanya `--text` dan `--muted` yang dipakai sebagai teks; status lewat pill, dan border input atau checkbox tidak diletakkan langsung di atasnya.
 
 Setiap token baru wajib dicek: teks ≥ 4.5:1, komponen non-teks (border input, ikon fungsional) ≥ 3:1.
 
@@ -189,16 +197,20 @@ Ketiga font punya lebar dan x-height berbeda, jadi UI harus tahan terhadap perga
 | `--space-8` | 32px | Padding layar desktop |
 | `--space-12` | 48px | Jeda antar kelompok besar di settings |
 
-Satu nilai gap (`24px`) untuk horizontal dan vertikal di level layar.
+Satu nilai gap (`24px`) untuk horizontal dan vertikal di level layar. Pengecualian: **shell** memakai `--shell-inset` (12px, tepi luar) dan `--shell-gap` (8px, antarpanel) (ADR 0009).
 
 ### 4.2 Dimensi shell dan kontrol
 
 | Token | Nilai |
 | --- | --- |
-| `--rail-width` | 56px |
-| `--list-width` | 280px (kolom daftar worker, bisa di-resize 240–360px) |
-| `--pane-min` | 360px (panel preview atau inspector) |
-| `--titlebar-height` | 40px |
+| `--shell-inset` | 12px (tepi luar jendela ke panel) |
+| `--shell-gap` | 8px (antarpanel) |
+| `--sidebar-width` | 300px (dapat di-resize 240–360px) |
+| `--right-width` | 320px (panel kanan; preview, inspector, tugas) |
+| `--pane-min` | 320px |
+| `--topbar-height` | 32px (kontrol di atas latar, tanpa panel sendiri) |
+| `--tabbar-height` | 36px |
+| `--statusbar-height` | 28px (tanpa panel sendiri) |
 | `--control-height` | 32px desktop, 44px phone |
 | `--row-height` | 42px tabel padat, 48px list |
 
@@ -206,9 +218,9 @@ Satu nilai gap (`24px`) untuk horizontal dan vertikal di level layar.
 
 | Rentang | Perilaku |
 | --- | --- |
-| ≤ 640px (phone) | Rail menjadi bottom bar berlabel; satu panel per layar; tabel menjadi baris dua tingkat |
-| 641–1100px (tablet) | Rail tetap; kolom daftar worker dilipat jadi drawer; panel preview pindah ke tab |
-| ≥ 1101px (desktop) | Shell penuh: rail, daftar worker, main, panel kanan opsional |
+| ≤ 640px (phone) | Navigasi menjadi bottom bar berlabel; satu panel per layar; tabel menjadi baris dua tingkat |
+| 641–1100px (tablet) | Daftar worker menjadi drawer; navigasi menjadi bottom bar; panel kanan menjadi sheet |
+| ≥ 1101px (desktop) | Shell penuh: sidebar, area utama bertab, panel kanan opsional |
 
 Lebar yang wajib diuji: 390, 768, 1440.
 
@@ -219,12 +231,13 @@ Lebar yang wajib diuji: 390, 768, 1440.
 | Token | Nilai | Dipakai untuk |
 | --- | --- | --- |
 | `--radius-s` | 4px | Bar di chart, `kbd`, segmen loop strip |
-| `--radius-m` | 6px | Semua tombol, input, panel, kartu, dialog |
-| `--radius-full` | 999px | Pill status, avatar, titik status |
+| `--radius-m` | 8px | Input, tombol persegi, kartu, tabel |
+| `--radius-l` | 12px | Panel shell, dialog, composer, popover |
+| `--radius-full` | 999px | Pill status, toggle, segmented, tombol kecil di bilah, avatar, titik status |
 | `--border-width` | 1px | Semua border |
 | `--shadow-float` | `0 12px 28px rgba(0,0,0,.2)` gelap; `0 8px 24px rgba(19,20,22,.12)` terang | Hanya untuk yang melayang: menu, popover, tooltip, dialog, command palette |
 
-Satu radius (`6px`) untuk semua permukaan, dipilih sekali. Kartu dan panel dipisahkan oleh beda tone atau border 1px, tidak pernah dengan shadow.
+Dua radius (`8px` dan `12px`) ditambah pil, dipilih sekali (ADR 0009). Kartu dan panel dipisahkan oleh beda tone atau border 1px, tidak pernah dengan shadow.
 
 | Layer | z-index |
 | --- | --- |
@@ -256,7 +269,7 @@ Hanya `transform` dan `opacity` yang dianimasikan. Di bawah `prefers-reduced-mot
 ## 7. Ikon
 
 - Set: **Lucide** (lisensi ISC), outline, stroke 1.5.
-- Ukuran: 16px di dalam UI, 18px di rail.
+- Ukuran: 16px di dalam UI, 18px di sidebar.
 - Warna: `--muted`; `--text` saat aktif atau hover.
 - Ikon tanpa label wajib punya `aria-label` dan tooltip.
 - Tidak ada ikon di dalam kotak atau lingkaran berwarna.
@@ -398,20 +411,23 @@ Jalur tetap tujuh tahap untuk setiap worker:
 ### 9.1 Shell
 
 ```
-┌────┬──────────────┬──────────────────────────────┬────────────────┐
-│Rail│ Workers      │ Main                         │ Preview /      │
-│56px│ 280px        │                              │ inspector      │
-│    │ (per project)│                              │ ≥ 360px        │
-│ ◆  │ ● Fix total  │  Title row                   │                │
-│ ▤  │ ● Add login  │  Loop strip                  │                │
-│ ⧉  │ ○ Hero copy  │  Terminal | Chat | Diff      │                │
-│ ⚙  │              │                              │                │
-└────┴──────────────┴──────────────────────────────┴────────────────┘
+ [project ▾] [◧]       [ Board | Workers | Overview ]        [kapsul] [◨]   ← bilah atas 32px, tanpa panel
+┌────────────┐ ┌──────────────────────────────────┐ ┌──────────────┐
+│ Sidebar    │ │ Area utama (tab, bisa di-split)  │ │ Panel kanan  │
+│ 300px      │ │  Title row · Loop strip          │ │ 320px        │
+│ ● Fix total│ │  Terminal | Chat | Diff | Gate   │ │ Preview /    │
+│ ○ Hero copy│ │                                  │ │ inspector    │
+└────────────┘ └──────────────────────────────────┘ └──────────────┘
+ koneksi · 3 worker berjalan · pemakaian hari ini · server           ← bilah status 28px
 ```
 
-- Rail: tanda produk di atas, lalu Board, Projects, Servers; Settings di bawah. Tooltip di setiap ikon.
-- Title bar desktop app 40px: nama project aktif, server, dan pencarian (`⌘K`).
-- Status bar 24px di bawah: server tersambung, jumlah worker bekerja, pemakaian limit agent.
+- Tiga panel `--surface` mengambang di atas `--ground`, tepi luar `--shell-inset` (12px) dan celah `--shell-gap` (8px), radius `--radius-l`.
+- Bilah atas: pemilih project, tombol sidebar, navigasi layar, kapsul aksi (command palette, notifikasi, akun), tombol panel kanan. Tombol kecil di bilah berbentuk pil.
+- Sidebar: Board, daftar worker per project, server; Settings di bawah. Tooltip di setiap ikon.
+- Area utama memakai tab (`--tabbar-height`); satu layar menampilkan satu pertanyaan.
+- Panel kanan opsional; panel bawah opsional untuk terminal dan aktivitas.
+- Bilah status memuat item yang bisa dipilih: koneksi daemon, worker berjalan, pemakaian hari ini, server. Tiap item membuka halaman terkait.
+- Di bawah 1100px daftar worker menjadi drawer (tombol di bilah atas), navigasi menjadi bottom bar berlabel, dan panel kanan menjadi sheet yang dibuka dari bilah atas. Berbeda dari referensinya, shell wajib punya tata letak ringkas.
 
 ### 9.2 Board
 
@@ -440,7 +456,7 @@ Jalur tetap tujuh tahap untuk setiap worker:
 
 ### 9.6 Settings
 
-- Kolom tengah ±1152px. Setiap section satu baris: kolom label ±400px (judul 16/500, deskripsi 14px `--muted`) di samping panel ±700px.
+- Sidebar Settings bergrup (Workspace, Agents, Application) dengan kolom cari; isi di area utama. **Toggle dan select berlaku langsung** dengan toast; tombol Save hanya untuk form multi-kolom (ADR 0009). Kolom tengah ±1152px. Setiap section satu baris: kolom label ±400px (judul 16/500, deskripsi 14px `--muted`) di samping panel ±700px.
 - Grup: Account, Agents (status login per agent), Domains, Servers, Notifications, Appearance.
 - **Appearance → Font:** radio group tiga opsi. Setiap opsi menampilkan namanya dan satu baris contoh yang dirender dengan font itu sendiri ("Fix checkout total · 2.9 of 4.0 GB · 12m"). Opsi yang tidak tersedia di OS ini nonaktif dengan alasannya. Perubahan langsung berlaku dan diumumkan lewat `aria-live` ("Font changed to SF Pro Display").
 
@@ -452,9 +468,18 @@ Jalur tetap tujuh tahap untuk setiap worker:
 
 ### 9.8 Phone
 
-- Rail menjadi bottom bar: Board, Projects, Servers, Settings, masing-masing dengan label.
+- Navigasi menjadi bottom bar: Board, Projects, Servers, Settings, masing-masing dengan label.
 - Board menjadi satu kolom per tab status. Detail worker: loop strip, lalu tab; preview dibuka penuh layar.
 - Aksi persetujuan (Approve ship, Reply) selalu terjangkau dengan jempol di bagian bawah.
+
+### 9.9 Pola lintas layar (ADR 0009)
+
+- **Daftar entitas** (agent, rule, memori, server): kartu baris `--raised` dengan judul, lencana, cuplikan, tombol hapus, Edit, toggle aktif. Hapus lewat dialog yang menyebut nama objek, apa yang ikut hilang, dan apa yang tidak.
+- **Keadaan kosong:** teks yang menyebut tombol yang harus ditekan; tanpa ilustrasi atau ikon di wadah berwarna.
+- **Operasi mahal** (build, spec, Wiki): estimasi biaya sebelum mulai, progres per fase, tombol Batalkan yang terlihat.
+- **Validasi form:** kolom wajib bergaris `--negative` dengan pesan sebaris; tombol utama redup dengan petunjuk "Perbaiki kolom bertanda".
+- **Command palette** (`⌘K`): grup berjudul, deskripsi, keycap; item merusak diredupkan; satu sumber perintah dan shortcut.
+- **Label bagian** 11px kapital berjarak (`--fs-label`) hanya sebagai judul grup di Settings dan sidebar.
 
 ---
 
@@ -483,16 +508,16 @@ Satu nama untuk satu kondisi, dipakai sama di kartu, judul, toast, dan notifikas
 :root,
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --ground: #171719;
-  --surface: #131217;
-  --raised: #212023;
-  --active: #2a292d;
-  --border: #222224;
-  --rule: #1b1a1f;
-  --control: #3a3a3e;
-  --control-strong: #6b6d73;
+  --ground: #060606;
+  --surface: #181818;
+  --raised: #202020;
+  --active: #2b2b2b;
+  --border: #2a2a2a;
+  --rule: #222222;
+  --control: #303030;
+  --control-strong: #6e6e6e;
   --text: #ffffff;
-  --muted: #8a8c92;
+  --muted: #9a9a9a;
   --accent: #4a8ad6;
   --positive: #44a282;
   --negative: #e5566f;
@@ -503,33 +528,33 @@ Satu nama untuk satu kondisi, dipakai sama di kartu, judul, toast, dan notifikas
   --pill-positive-bg: #1b2828; --pill-positive-ink: #5fc39c;
   --pill-negative-bg: #2c1a20; --pill-negative-ink: #e5566f;
   --pill-warning-bg: #2a2416;  --pill-warning-ink: #d9a441;
-  --pill-neutral-bg: #212023;  --pill-neutral-ink: #bdbdc0;
+  --pill-neutral-bg: #202020;  --pill-neutral-ink: #bdbdc0;
   --shadow-float: 0 12px 28px rgba(0, 0, 0, .2);
 }
 
 :root[data-theme="light"] {
   color-scheme: light;
-  --ground: #f9fbfc;
-  --surface: #ffffff;
-  --raised: #f4f6f8;
-  --active: #ebedee;
-  --border: #e8eaec;
-  --rule: #f0f1f2;
-  --control: #cdced1;
-  --control-strong: #8f9196;
-  --text: #131416;
-  --muted: #5d5f60;
+  --ground: #edeef0;
+  --surface: #f5f6f7;
+  --raised: #ffffff;
+  --active: #e3e5e8;
+  --border: #dcdee2;
+  --rule: #e8eaed;
+  --control: #d3d5d9;
+  --control-strong: #8a8c91;
+  --text: #16161a;
+  --muted: #5b5d62;
   --accent: #1d5fbf;
   --positive: #1e7b4f;
   --negative: #c4242a;
   --warning: #92400e;
-  --primary-bg: #131416;
+  --primary-bg: #16161a;
   --primary-ink: #ffffff;
   --scrim: rgba(19, 20, 22, .4);
   --pill-positive-bg: #dcfae5; --pill-positive-ink: #04250e;
   --pill-negative-bg: #ffedea; --pill-negative-ink: #831c1e;
   --pill-warning-bg: #fffbeb;  --pill-warning-ink: #92400e;
-  --pill-neutral-bg: #ebedee;  --pill-neutral-ink: #353736;
+  --pill-neutral-bg: #e3e5e8;  --pill-neutral-ink: #353736;
   --shadow-float: 0 8px 24px rgba(19, 20, 22, .12);
 }
 
@@ -551,20 +576,26 @@ Satu nama untuk satu kondisi, dipakai sama di kartu, judul, toast, dan notifikas
   --fs-body: 14px;    --lh-body: 20px;
   --fs-dense: 13px;   --lh-dense: 18px;
   --fs-small: 12px;   --lh-small: 16px;
+  --fs-label: 11px;   --lh-label: 16px;
 
   --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
   --space-6: 24px; --space-8: 32px; --space-12: 48px;
   --gap: var(--space-6);
+  --shell-inset: var(--space-3);
+  --shell-gap: var(--space-2);
 
-  --rail-width: 56px;
-  --list-width: 280px;
-  --pane-min: 360px;
-  --titlebar-height: 40px;
+  --sidebar-width: 300px;
+  --right-width: 320px;
+  --pane-min: 320px;
+  --topbar-height: 32px;
+  --tabbar-height: 36px;
+  --statusbar-height: 28px;
   --control-height: 32px;
   --row-height: 42px;
 
   --radius-s: 4px;
-  --radius-m: 6px;
+  --radius-m: 8px;
+  --radius-l: 12px;
   --radius-full: 999px;
 
   --dur-fast: 120ms;
