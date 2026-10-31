@@ -15,6 +15,14 @@ Setiap potongan selesai bila `make check` dan pemeriksaan web lulus, dan require
 | 5 | **Web:** Board tersambung ke daemon (store fakta dari WebSocket menggantikan data contoh), detail worker dengan tab Terminal (xterm.js) | F4-01, F4-02, F4-03 | Lulus di browser dengan daemon lokal dan agen tiruan (`scripts/dev/local-daemon.sh`), uji Vitest, dan inspektur taste-skill (0 FAIL); belum diuji dengan agent sungguhan, VPS, dan di tiga font; menunggu QA manual. Tab Chat, Diff, Gate, Feedback dan panel preview menyusul bersama fiturnya |
 | 6 | **Onboarding dan server:** tambah server lewat SSH, pemeriksaan kesiapan, pasang daemon dan user agent | F1-01 sampai F1-07 | Lulus lewat SSH sungguhan ke VM (`scripts/vm/test-install.sh`, 58 pemeriksaan) dan di browser; F1-02 sampai F1-05 dan F1-07 selesai di sisi kode, F1-06 sebagian (tanpa web UI yang di-embed ke binary), F1-01 belum (installer bertanda tangan butuh pipeline rilis dan app desktop); belum diuji di VPS sungguhan, Debian 12, atau dengan agent sungguhan; menunggu QA manual (ADR 0007) |
 
+## Fase 0 (ADR 0008)
+
+| Potongan | Requirement | Status |
+| --- | --- | --- |
+| Shell baru dan token (ADR 0009) | F4-03 | Selesai di web (0 FAIL di inspektur); menunggu QA manual |
+| **Batas worker aktif dengan antrean:** fakta `queued`, status Queued, `ErrQueued` dan `Supervisor.Drain` (tertua dulu), jawaban 202 dari `POST /workers/{id}/start`, `ASTRA_MAX_WORKERS` (bawaan 4, 0 = tanpa batas); sesi yang selamat dari restart dihitung sebelum worker antre dimulai | F10-05 | Lulus di uji Go (race, synctest) dan web; belum diuji di VM dengan agent sungguhan; menunggu QA manual |
+| **Pencatatan usage dari transcript:** event `usage` dari adapter Claude (per `message.id`, laporan terakhir menggantikan) dan Codex (total sesi dari `token_count`, cache dipisah dari input; model dari `turn_context`), tabel `usage` (migrasi 005), `GET /api/v1/usage?days=30` per hari, agent, dan model. Biaya dan layar Token Usage belum dibuat (M1b) | F14-04 | Lulus di uji Go dengan fixture bergaya transcript asli; **format `usage` transcript sungguhan belum diverifikasi di VM**; usage Codex satu baris per sesi (sesi Codex baru menimpa total lama); menunggu QA manual |
+
 ## Keputusan yang masih terbuka
 
 Dari ADR 0003 dan 0005; masing-masing harus diputuskan sebelum potongan yang bergantung padanya. Hak membuat user dan unit sesi sudah diputuskan: helper milik root `astra-priv` (ADR 0005). Onboarding: ADR 0007.
