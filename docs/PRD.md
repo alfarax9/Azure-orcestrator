@@ -9,6 +9,10 @@ PRD ini adalah spesifikasi development untuk MVP. Claude Code membangun dari dok
 - **Prioritas:** P0 wajib ada di MVP, P1 masuk MVP bila P0 sudah stabil, P2 untuk setelah MVP.
 - **Bergantung pada spike.** Requirement bertanda `[S1]`, `[S2]`, dst. bergantung pada hasil spike di dokumen riset bagian 5. Kalau spike gagal, requirement terkait direvisi lewat ADR sebelum dikerjakan.
 
+### Perubahan setelah v1.0
+
+Perubahan berikut disetujui pemilik produk lewat ADR dan **mengalahkan** PDF v1.0 bila berbeda: **ADR 0008** (2026-10-31: arah produk setara Sokudo; requirement F4-07, F4-08, F10-05, F12-05, F14, F15; urutan Fase 0, M1b, M1c) dan **ADR 0009** (2026-10-31: shell panel mengambang dan token baru). Baris yang ditambah atau diubah memuat tanda `(ADR 0008)` atau `(ADR 0009)`.
+
 ## 1. Ringkasan produk
 
 Astra adalah orchestrator agent coding yang hidup di VPS milik user: agent menulis kode di worktree terpisah, setiap worktree langsung punya URL preview yang bisa dibuka klien, dan hasilnya dikirim ke production dengan satu klik, lengkap dengan gerbang otomatis dan rollback.
@@ -50,10 +54,10 @@ MVP berhasil bila satu developer bisa membawa satu fitur dari prompt sampai URL 
 | Fitur tim: role, undangan, audit per anggota | 2 |
 | Docker Compose atau aplikasi multi-service | 2 |
 | Mode agent lokal di Windows | 2 |
-| Agent selain Claude Code dan Codex (OpenCode dan lainnya) | 2 |
+| CLI agent selain Claude Code dan Codex (OpenCode dan lainnya); provider API OpenAI-compatible dikerjakan lewat F14-02 (ADR 0008) | 2 |
 | Provider DNS selain Cloudflare | 2 |
 | Integrasi GitHub PR dan review | 2 |
-| Orchestrator agent yang merencanakan dan membagi task | 2 |
+| Orchestrator agent yang merencanakan dan membagi task (acuan: alur spec-driven, F14-06) | 2 |
 | Invoice dan laporan biaya per klien | 2 |
 | White-label overlay klien | 2 |
 | Kubernetes, Swarm, atau cloud provider terkelola | Tidak direncanakan |
@@ -144,6 +148,8 @@ Setiap requirement diverifikasi dengan kriteria penerimaannya saat QA manual. ID
 | F4-04 | Notifikasi native untuk Needs you, gate gagal, rollback otomatis, dan komentar klien | P0 | Tidak ada notifikasi untuk perubahan status lain |
 | F4-05 | Command palette (`⌘K` / `Ctrl+K`) untuk worker, project, server, dan aksi | P1 | Semua aksi utama bisa dijalankan dari palette |
 | F4-06 | Bandingkan beberapa worker untuk task yang sama secara berdampingan (preview + diff) | P1 | Tiga preview tampil berdampingan di layar 1440px |
+| F4-07 | Bilah status di bawah shell: koneksi daemon, worker berjalan, pemakaian hari ini, server; tiap item membuka halaman terkait (ADR 0008) | P1 | Setiap item bisa dipilih dengan keyboard dan membuka halaman yang tepat |
+| F4-08 | Tugas dengan ID, deskripsi, prioritas, dan History fakta (dari, ke, siapa, kapan); tampilan List dan pencarian di samping Board; satu tugas menjadi satu worker (ADR 0008) | P1 | History memuat nilai lama dan baru setiap perubahan; pencarian menemukan tugas lewat ID, judul, atau agent |
 
 ### F5. Preview
 
@@ -203,6 +209,7 @@ Setiap requirement diverifikasi dengan kriteria penerimaannya saat QA manual. ID
 | F10-02 | Mode dua node: node agent dan node production | P1 | Agent tidak punya akses jaringan atau file ke node production |
 | F10-03 | Daftar server dengan status koneksi, CPU, RAM, disk, jumlah worker, dan jumlah app | P0 | Server yang terputus terlihat dalam 30 detik |
 | F10-04 | Batas resource per agent dan per build dengan cgroups v2 [S6] | P0 | Latensi p95 aplikasi production naik < 10% saat 3 agent dan 1 build aktif |
+| F10-05 | Batas jumlah worker aktif per server dengan antrean; worker lebih mulai saat slot kosong (ADR 0008) | P0 | Dengan batas 4, worker ke-5 menunggu antrean dan mulai otomatis saat satu worker selesai |
 
 ### F11. Settings
 
@@ -223,6 +230,7 @@ Setiap requirement diverifikasi dengan kriteria penerimaannya saat QA manual. ID
 | F12-02 | Dashboard daemon hanya bisa diakses lewat jaringan privat (`tsnet`) atau tunnel SSH; yang publik hanya preview dan production [S9] | P0 | Port selain 80/443 tertutup dari internet |
 | F12-03 | Indikator "skip permissions" selalu terlihat di header terminal agent | P0 | Tidak bisa disembunyikan |
 | F12-04 | Konfirmasi untuk aksi berisiko sesuai `DESIGN_RULES.md` §7.2 | P0 | Ship, rollback manual, dan hapus server tidak pernah terjadi tanpa konfirmasi |
+| F12-05 | Sakelar capability per workspace untuk tool agent; default aman; berlaku untuk sesi berikutnya; aksi yang tidak bisa dibalik tetap butuh approval manusia walau sakelar hidup (ADR 0008) | P1 | Mematikan sakelar menolak panggilan berikutnya; deploy, hapus data, dan perintah SSH tidak berjalan tanpa approval |
 
 ### F13. Provenance dan riwayat
 
@@ -231,6 +239,25 @@ Setiap requirement diverifikasi dengan kriteria penerimaannya saat QA manual. ID
 | F13-01 | Setiap deployment tercatat dengan prompt, agent, worker, diff, hasil gate, dan siapa yang approve | P0 | Dari versi mana pun di production, bisa ditelusuri ke prompt asalnya |
 | F13-02 | Ringkasan perubahan untuk klien dalam bahasa non-teknis, dibuat dari provenance | P1 | Ringkasan bisa disalin atau dibagikan sebagai link |
 | F13-03 | Ekspor riwayat deployment per project (CSV atau JSON) | P2 | File berisi semua kolom F13-01 |
+
+### F14. Agent, provider, dan pemakaian (ADR 0008)
+
+| ID | Requirement | Prio | Kriteria penerimaan |
+| --- | --- | --- | --- |
+| F14-01 | Definisi agent: nama, role, CLI, model, effort, system prompt, fallback; disimpan daemon | P1 | Agent yang dibuat bisa dipilih saat membuat worker; role bebas dengan preset |
+| F14-02 | Provider API OpenAI-compatible (OpenRouter, OmniRoute, 9Router, Custom) dengan agent loop di daemon dan tool host di unit sesi; key terenkripsi di server, tidak pernah ke proses agent; label bahwa mode ini memakai kredit penyedia | P1 | Run dengan server palsu dan satu run nyata ber-key kecil selesai; key tidak terlihat di `/proc` milik agent; tool tidak bisa keluar dari worktree |
+| F14-03 | Fallback agent saat limit rate atau sesi (CLI atau API), diputuskan daemon | P1 | Saat agent utama kena limit, run pindah ke fallback dan tercatat dengan alasannya |
+| F14-04 | Pemakaian token dan biaya per worker dan per giliran, dari transcript CLI dan dari API; biaya hasil hitung ditandai estimasi | P1 | Layar pemakaian menampilkan hari ini, minggu, bulan, dan per model; angka tanpa data tampil `—` |
+| F14-05 | Server MCP di daemon untuk tool IDE (baca dan tulis bergerbang) lewat socket Unix per workspace | P2 | Agent di workspace lain tidak bisa memanggil tool workspace ini |
+| F14-06 | Alur spec-driven: Requirements, Design, Tasks dengan drafter, critic, reviser; kartu dengan Approve, Request changes, View, Regenerate, Discard | P2 | Batas waktu dan token per tahap, dan tombol Batalkan yang terlihat; tahap tidak berputar tanpa selesai |
+
+### F15. Konteks project (ADR 0008)
+
+| ID | Requirement | Prio | Kriteria penerimaan |
+| --- | --- | --- | --- |
+| F15-01 | Knowledge, Rules, dan Memory per workspace dengan "selalu sertakan" atau Pin; daemon menyuntikkan lewat berkas terkelola di worktree | P1 | Item yang di-pin muncul di berkas terkelola; item mati tidak |
+| F15-02 | Usulan agent (rule, memori, Knowledge) menunggu persetujuan manusia; ekstraksi otomatis hanya untuk giliran substansial dengan batas biaya | P2 | Usulan tidak berlaku sebelum disetujui; pemicu ekstraksi terlihat di UI |
+| F15-03 | Wiki: halaman bernarasi, graf berlapis dengan asal relasi, tur baca; dibangun atas permintaan dengan estimasi biaya, progres per fase, dan Batalkan | P2 | Build menampilkan estimasi sebelum mulai dan bisa dibatalkan |
 
 ## 6. Requirement non-fungsional
 
@@ -432,10 +459,14 @@ Pekerjaan dibagi menjadi enam milestone yang dipisahkan empat gerbang. Setiap ge
 | **M0 Spike** — prototype risiko terbesar | S1–S10: PTY, chat view, isolasi, preview TLS, build, cgroups, blue-green, overlay, tsnet, desktop tiga OS | — |
 | ◆ Gerbang 1 | S1 sampai S3 lulus, konsep layak | |
 | **M1 Inti** — daemon, agent, board | F1 onboarding, F2 project, F3 runtime agent, F4 board | 5 sesi agent stabil 2 jam, kartu board pindah otomatis |
+| **Fase 0** (ADR 0008, 0009) | Shell dan token baru; batas worker aktif (F10-05); pencatatan pemakaian dari transcript (F14-04) | Shell tiga panel lulus checklist `DESIGN_RULES.md` §13 |
+| **M1b Agent dan provider** (ADR 0008) | F14-01 sampai F14-03, layar Settings Agents, Providers, Token Usage | Run API dengan fallback lintas CLI dan API |
 | ◆ Gerbang 2 | S4 dan S5 lulus, fitur unggulan layak | |
 | **M2 Preview dan feedback** — Show | F5 preview, F6 feedback klien | Preview aktif < 10 detik, overlay jalan di 3 sampel |
 | **M3 Ship dan watch** — Ship, Watch | F7 gate, F8 deploy, F9 watch, F12 keamanan, F13-01 provenance | 9 dari 10 sampel ter-deploy, rollback < 30 detik |
 | ◆ Gerbang 3 | Alur end-to-end lulus di minimal 9 dari 10 sampel | |
+| **M1c Konteks dan tugas** (ADR 0008) | F4-08, F15-01, F4-07 | Item Pin tersuntik; History tugas lengkap |
+| **Setelah M3** (ADR 0008) | F14-05, F14-06, F15-02, F15-03 | Spec dan Wiki dengan batas biaya |
 | **M4 Private beta** — desktop tiga OS | F1-01 installer bertanda tangan, F10 server, F11 settings | Diuji 5 developer yang diwawancarai |
 | ◆ Gerbang 4 | Semua metrik produk tercapai, nol temuan keamanan terbuka | |
 | **M5 Rilis publik** — GitHub Releases | Semua format file di bagian 8.1, dokumentasi install | Metrik adopsi diukur selama 8 minggu |
@@ -498,6 +529,8 @@ Metrik produk menjadi syarat Gerbang 4 dan diuji sebelum rilis publik. Metrik ad
 | Apakah loki-mode dan NXTG-Forge tumpang tindih dengan fitur unggulan | Sebelum M2 | Maulana |
 | Ambang default rollback otomatis (error rate, health check gagal berapa kali) | Akhir M3, dari data uji 10 aplikasi sampel | Maulana |
 | Apakah komentar klien langsung menjadi task, atau menunggu persetujuan developer, sebagai default | Akhir M2, setelah diuji dengan klien nyata | Maulana |
+| Apakah key gateway boleh disuntikkan ke CLI agent (ADR 0008 §4, B2); usulan: tidak di MVP | Sebelum M1b | Maulana |
+| Apakah Knowledge, Rules, dan Memory berlaku per workspace (usulan) atau per project | Sebelum M1c | Maulana |
 | Hasil wawancara 5–10 developer persona target | Paralel dengan M0, wajib selesai sebelum M4 | Maulana |
 
 ## 16. Glosarium
