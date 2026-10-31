@@ -5,16 +5,52 @@
     "text": "Fix the total rounding in checkout.go and add a test."
   },
   {
+    "at": "2026-10-26T04:00:01Z",
+    "kind": "usage",
+    "usage": {
+      "key": "msg_1",
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 100,
+      "outputTokens": 10,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 500
+    }
+  },
+  {
     "at": "2026-10-26T04:00:01.2Z",
     "kind": "tool",
     "tool": "Read",
     "target": "/work/shop/checkout.go"
   },
   {
+    "at": "2026-10-26T04:00:01.2Z",
+    "kind": "usage",
+    "usage": {
+      "key": "msg_1",
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 100,
+      "outputTokens": 40,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 500
+    }
+  },
+  {
     "at": "2026-10-26T04:00:02Z",
     "kind": "tool",
     "tool": "Grep",
     "target": "math.Round"
+  },
+  {
+    "at": "2026-10-26T04:00:02Z",
+    "kind": "usage",
+    "usage": {
+      "key": "msg_2",
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 8,
+      "outputTokens": 30,
+      "cacheReadTokens": 500,
+      "cacheWriteTokens": 0
+    }
   },
   {
     "at": "2026-10-26T04:00:03.2Z",
@@ -83,6 +119,30 @@
     }
   },
   {
+    "at": "2026-10-26T04:00:06.5Z",
+    "kind": "usage",
+    "usage": {
+      "key": "msg_6",
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 50,
+      "outputTokens": 20,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    }
+  },
+  {
+    "at": "2026-10-26T04:00:07Z",
+    "kind": "usage",
+    "usage": {
+      "key": "msg_7",
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 12,
+      "outputTokens": 5,
+      "cacheReadTokens": 600,
+      "cacheWriteTokens": 0
+    }
+  },
+  {
     "at": "2026-10-26T04:00:07.1Z",
     "kind": "message",
     "text": "Rounding now uses math.Round, and checkout_test.go covers it."
@@ -90,6 +150,18 @@
   {
     "at": "2026-10-26T04:00:07.1Z",
     "kind": "turn_end"
+  },
+  {
+    "at": "2026-10-26T04:00:07.1Z",
+    "kind": "usage",
+    "usage": {
+      "key": "msg_7",
+      "model": "claude-sonnet-5-5",
+      "inputTokens": 12,
+      "outputTokens": 90,
+      "cacheReadTokens": 600,
+      "cacheWriteTokens": 0
+    }
   },
   {
     "at": "2026-10-26T04:00:09Z",
