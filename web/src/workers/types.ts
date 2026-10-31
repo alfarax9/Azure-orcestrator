@@ -18,6 +18,8 @@ export interface Worker {
   branch: string;
   agent: "Claude Code" | "Codex";
   createdAt: number;
+  /** Waiting for a free slot because the server already runs as many workers as it may (F10-05). */
+  queued?: boolean;
   /** False for internal projects: the Client stage is skipped. */
   clientReview: boolean;
   agentActivity: AgentActivity;
